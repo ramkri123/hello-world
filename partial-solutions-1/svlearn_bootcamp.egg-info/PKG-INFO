@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: svlearn-bootcamp
+Version: 1.0.0
+Summary: Text-extraction from given file.
+Home-page: https://packages.python.org/svlearn-bootcamp
+Author: Asif Qamar
+Author-email: asif@supportvectors.com
+Classifier: Operating System::OS Independent
