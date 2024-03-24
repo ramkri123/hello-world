@@ -10,15 +10,15 @@
 #
 
 import logging as log
-
 import faiss
 import numpy as np
+import re
 
 from svlearn.common import file_exists
 from svlearn.common.svexception import SVError
 from svlearn.config import ConfigurationMixin
 
-log.basicConfig(level=log.DEBUG)
+log.basicConfig(level=log.INFO)
 
 #
 # TODO: We need to train a few of the indexers before using them. 
@@ -157,3 +157,8 @@ class FaissIndexer(ConfigurationMixin):
         ids = [id for (id, _) in vector_list]
         vectors = [np.array(vector) for _, vector in vector_list]
         self.index.add_with_ids(np.array(vectors), ids)
+
+    def get_neighbors(self, query, k):
+        D, I = self.index.search(query, k)
+        index_str_list = re.findall(r'\d+', str(I))
+        return index_str_list
