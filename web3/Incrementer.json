@@ -1,0 +1,51 @@
+{
+  "abi": [
+    {
+      "inputs": [],
+      "name": "getNumber",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_value",
+          "type": "uint256"
+        }
+      ],
+      "name": "increment",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "number",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "reset",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "6080604052600a5f553480156012575f80fd5b506101fa806100205f395ff3fe608060405234801561000f575f80fd5b506004361061004a575f3560e01c80637cf5dab01461004e5780638381f58a1461006a578063d826f88f14610088578063f2c9ecd814610092575b5f80fd5b61006860048036038101906100639190610111565b6100b0565b005b6100726100c5565b60405161007f919061014b565b60405180910390f35b6100906100ca565b005b61009a6100d2565b6040516100a7919061014b565b60405180910390f35b805f546100bd9190610191565b5f8190555050565b5f5481565b5f8081905550565b5f8054905090565b5f80fd5b5f819050919050565b6100f0816100de565b81146100fa575f80fd5b50565b5f8135905061010b816100e7565b92915050565b5f60208284031215610126576101256100da565b5b5f610133848285016100fd565b91505092915050565b610145816100de565b82525050565b5f60208201905061015e5f83018461013c565b92915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52601160045260245ffd5b5f61019b826100de565b91506101a6836100de565b92508282019050808211156101be576101bd610164565b5b9291505056fea26469706673582212206e3a819c1d5f96c90fa71d2ab5094bbf8eabc43078dc628c775174e549797d7c64736f6c63430008190033"
+}

@@ -1,0 +1,18 @@
+/home/ramki/.nvm/versions/node/v20.12.0/bin/ganache --defaultBalanceEther 10000000000000000
+
+(.venv) ramki@ramki-1:~/web3$ python compile.py 
+(.venv) ramki@ramki-1:~/web3$ python deploy.py 
+Attempting to deploy from account: 0xF44602E13F72301FF22F5aade273eB4c7a90ac79
+Contract deployed at address: 0xff9965B17eF082db4a073Af2B82909158B5bacBA
+(.venv) ramki@ramki-1:~/web3$ python get.py
+0xff9965B17eF082db4a073Af2B82909158B5bacBA
+Making a call to contract at address: 0xff9965B17eF082db4a073Af2B82909158B5bacBA
+The current number stored is: 10 
+(.venv) ramki@ramki-1:~/web3$ python increment.py 
+0xff9965B17eF082db4a073Af2B82909158B5bacBA
+Calling the increment by 3 function in contract at address: 0xff9965B17eF082db4a073Af2B82909158B5bacBA
+Tx successful with hash: 0x33ccd6cb0f018ad6be3bb44066bfcd2c507a62486f734d6b6c0b70703dbee3c6
+(.venv) ramki@ramki-1:~/web3$ python get.py
+0xff9965B17eF082db4a073Af2B82909158B5bacBA
+Making a call to contract at address: 0xff9965B17eF082db4a073Af2B82909158B5bacBA
+The current number stored is: 13 
