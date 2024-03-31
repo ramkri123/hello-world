@@ -1,0 +1,39 @@
+0) https://community.sisense.com/t5/knowledge/relocating-var-lib-docker-directory/ta-p/18596
+Add a parameter that points docker to the new directory:
+ ExecStart=/usr/bin/dockerd --data-root /second_drive/docker -H fd:// --containerd=/run/containerd/containerd.sock
+
+1) bootcamp slack
+
+2) partial solutions readme
+
+
+#Create conda environment:
+conda create --name  proj1 python=3.11
+conda activate proj1
+
+#Packages required for text_extractor:
+conda install -c conda-forge::tika
+conda install pytorch::pytorch
+conda install conda-forge::rich
+conda install -c anaconda decorator 
+Tika server needs Java: Install Java 8
+https://www.oracle.com/java/technologies/javase/javase8u211-later-archive-downloads.html
+
+#Packages required for text_chunker:
+conda install -c conda-forge spacy
+conda install -c conda-forge sentence-transformers
+conda install conda-forge::ruamel.yaml
+conda install conda-forge::pykwalify
+conda install conda-forge::spacy-model-en_core_web_sm
+Package required for faiss:
+conda install -c conda-forge faiss-cpu
+
+#Package required for postgressql:
+conda install conda-forge::psycopg
+conda install -c conda-forge pgvector
+
+#Command to connect to DB using CLI:
+psql -p 5433
+DROP TABLE
+SELECT * FROM "files";
+SELECT * FROM "chunks";
