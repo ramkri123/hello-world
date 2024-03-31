@@ -1,4 +1,5 @@
-0) https://community.sisense.com/t5/knowledge/relocating-var-lib-docker-directory/ta-p/18596
+00) https://learn.microsoft.com/en-us/azure/virtual-machines/linux/attach-disk-portal?tabs=ubuntu
+01) https://community.sisense.com/t5/knowledge/relocating-var-lib-docker-directory/ta-p/18596
 Add a parameter that points docker to the new directory:
  ExecStart=/usr/bin/dockerd --data-root /second_drive/docker -H fd:// --containerd=/run/containerd/containerd.sock
 
