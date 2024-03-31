@@ -130,6 +130,7 @@ def embedding_to_vectorDB(sentence_embedding):
                          
 if __name__ == '__main__':
 
+    print("start")
     create_tables()
 
     convert_doc_to_text()
