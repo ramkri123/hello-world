@@ -1,0 +1,23 @@
+[server]
+# Only bind to private network interface
+address = "192.168.4.100"
+port = 8501
+
+# Security settings
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+# Don't automatically open browser
+gatherUsageStats = false
+
+[theme]
+# Optional: Set a professional theme
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+
+[logger]
+# Reduce log verbosity
+level = "warning"
