@@ -70,21 +70,74 @@ This system implements a **Score Sharing Consortium** for fraud detection, where
 
 ## 2. Architecture
 
-### Score Sharing Consortium Flow
+### Distributed HTTP-Based Consortium Flow
 
 ```
-Bank A: Local Training → Local Model → Local Inference → Risk Score → Consortium TEE
-Bank B: Local Training → Local Model → Local Inference → Risk Score → Consortium TEE  
-Bank C: Local Training → Local Model → Local Inference → Risk Score → Consortium TEE
-
-Consortium TEE: Score Aggregation → Comparison Score → Consensus Alert → Banks
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONSORTIUM HUB                               │
+│                   (HTTP API Server)                             │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │  Flask HTTP Gateway (Port 8080)                             ││
+│  │  • Participant registration & management                    ││
+│  │  • Inference distribution & score collection               ││
+│  │  • Consensus vs. divergence analysis                       ││
+│  │  • Real-time session management                            ││
+│  └─────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+                                    ▲
+                        HTTP Connections (Outbound Only)
+                                    │
+    ┌───────────────────┐          │          ┌───────────────────┐
+    │  BANK A PROCESS   │──────────┼──────────│  BANK B PROCESS   │
+    │ (HTTP Client Only)│          │          │ (HTTP Client Only)│
+    │                   │          │          │                   │
+    │ Wire Transfer     │          │          │ Identity          │
+    │ Specialist        │          │          │ Verification      │
+    │                   │          │          │ Expert            │
+    │ • Local Model     │          │          │ • Local Model     │
+    │ • HTTP Client     │          │          │ • HTTP Client     │
+    │ • Specialized     │          │          │ • Specialized     │
+    │   Logging         │          │          │   Logging         │
+    └───────────────────┘          │          └───────────────────┘
+                                   │
+                        ┌───────────────────┐
+                        │  BANK C PROCESS   │
+                        │ (HTTP Client Only)│
+                        │                   │
+                        │ Network Pattern   │
+                        │ Analyst           │
+                        │                   │
+                        │ • Local Model     │
+                        │ • HTTP Client     │
+                        │ • Specialized     │
+                        │   Logging         │
+                        └───────────────────┘
 ```
 
 ### Key Components
 
-- **BankSimulator**: Simulates individual bank fraud detection models
-- **ConsortiumComparisonService**: Aggregates scores and provides consensus analysis
-- **Streamlit Dashboard**: Interactive web interface for transaction analysis
+- **Consortium Hub** (`consortium_hub.py`): Central HTTP API server for participant coordination
+- **Generic Bank Process** (`generic_bank_process.py`): **Primary implementation** - configurable bank process that can run as any bank
+- **Bank Specializations** (`specializations/`): Optional custom business logic modules per bank
+- **Distributed UI** (`distributed_consortium_ui.py`): Streamlit interface connecting via HTTP
+- **Participant Node** (`participant_node.py`): Base class for bank process HTTP client functionality
+
+### 🎯 **Primary Architecture (Recommended)**
+
+**Generic Process Approach:**
+```bash
+python generic_bank_process.py --bank-id bank_A  # Wire Transfer Specialist
+python generic_bank_process.py --bank-id bank_B  # Identity Verification Expert
+python generic_bank_process.py --bank-id bank_C  # Network Pattern Analyst
+```
+
+### 🏗️ **Alternative Architecture (Legacy)**
+
+For reference, the system also includes dedicated bank process files that demonstrate how each bank might implement their own specialized codebase in a real-world scenario:
+
+- **Bank A Process** (`bank_A_process.py`): Wire transfer fraud specialist (dedicated implementation)
+- **Bank B Process** (`bank_B_process.py`): Identity verification expert (dedicated implementation)  
+- **Bank C Process** (`bank_C_process.py`): Network pattern analyst (dedicated implementation)
 
 ---
 
@@ -119,12 +172,27 @@ plotly>=5.0.0
 Ensure you have all files in your working directory:
 
 ```
+# 🏗️ DISTRIBUTED SYSTEM (Primary Implementation)
+consortium_hub.py
+participant_node.py  
+generic_bank_process.py
+distributed_consortium_ui.py
+start_distributed_consortium.py
+start_banks_separately.py
+specializations/
+
+# 🏛️ LEGACY COMPONENTS (For Reference/Alternative)
+bank_A_process.py
+bank_B_process.py
+bank_C_process.py
 consortium_comparison_score_prototype.py
 consortium_fraud_ui.py
-consortium_privacy_preserving_fraud_detection.md
+consortium_ui.py
+
+# 📁 CONFIGURATION & DATA
 requirements.txt
-start_dashboard.sh
-.streamlit/config.toml
+consortium_architecture.md
+models/
 ```
 
 ### 4.2 Create Virtual Environment
@@ -161,84 +229,114 @@ python -c "import pandas, numpy, sklearn, xgboost, streamlit, plotly; print('✅
 # Make launch script executable (Linux/macOS only)
 chmod +x start_dashboard.sh
 
-# Start the complete system
-./start_dashboard.sh
-```
+---
 
-### 5.2 Manual Start
+## 5. Quick Start
+
+### 5.1 Automated Distributed Launch
 
 ```bash
-# Activate environment
-source venv/bin/activate
+# Start all components of the distributed system
+python start_distributed_consortium.py
 
-# Train models (first time only)
-python consortium_comparison_score_prototype.py train
-
-# Start web dashboard
-streamlit run consortium_fraud_ui.py
+# This starts:
+# - Consortium Hub (port 8080)
+# - Bank A Process (generic_bank_process.py --bank-id bank_A) 
+# - Bank B Process (generic_bank_process.py --bank-id bank_B)
+# - Bank C Process (generic_bank_process.py --bank-id bank_C)
+# - Distributed UI (port 8501)
 ```
 
-### 5.3 Access the Application
+### 5.2 Manual Component Start
 
-- **Local Access**: http://localhost:8501
-- **Network Access**: http://192.168.4.100:8501 (private network only)
+```bash
+# 1. Start consortium hub first
+python consortium_hub.py
+
+# 2. Start individual bank processes (separate terminals)
+python generic_bank_process.py --bank-id bank_A
+python generic_bank_process.py --bank-id bank_B  
+python generic_bank_process.py --bank-id bank_C
+
+# 3. Start distributed UI
+streamlit run distributed_consortium_ui.py
+```
+
+### 5.3 Individual Bank Launch
+
+```bash
+# Launch banks individually with custom launcher
+python start_banks_separately.py --bank A  # Start only Bank A
+python start_banks_separately.py --bank all  # Start all banks
+```
+
+### 5.4 Access the Application
+
+- **Distributed UI**: http://localhost:8501
+- **Consortium Hub API**: http://localhost:8080
+
+### 5.5 Architecture Note
+
+**🔒 Zero-Trust Security Model:**
+- Banks run as **HTTP clients only** - no inbound ports
+- All connections are **outbound-only** from bank premises
+- Consortium hub receives connections but banks never expose services
+- Complete **firewall-friendly** architecture
 
 ---
 
 ## 6. Usage Guide
 
-### 6.1 Training Models
+### 6.1 Distributed System Operation
 
-Train fraud detection models for all consortium banks:
-
-```bash
-# Train all models
-python consortium_comparison_score_prototype.py train
-
-# Check trained models
-python consortium_comparison_score_prototype.py list
-```
-
-**Output Example:**
-```
-Consortium Model Training Mode
-==============================
-
-1. Creating synthetic bank data with diverse perspectives...
-bank_A: 1000 transactions, 12.4% fraud rate
-bank_B: 1000 transactions, 12.0% fraud rate
-bank_C: 1000 transactions, 13.5% fraud rate
-
-3. Training bank models on diverse data...
-bank_A (xgboost): Training accuracy: 0.895
-bank_B (xgboost): Training accuracy: 0.880
-bank_C (xgboost): Training accuracy: 0.915
-
-Training complete! Models saved and ready for inference.
-```
-
-### 6.2 Running Inference
-
-Perform consortium fraud analysis using pre-trained models:
+The system operates as **separate Python processes** for each bank:
 
 ```bash
-# Run inference only (requires trained models)
-python consortium_comparison_score_prototype.py inference
+# Check consortium hub health
+curl http://localhost:8080/health
 
-# Run full demo (training + inference)
-python consortium_comparison_score_prototype.py full
+# View registered participants
+curl http://localhost:8080/health | python -m json.tool
 ```
 
-### 6.3 Web Dashboard
+**Expected Output:**
+```json
+{
+  "status": "healthy",
+  "participants": 3,
+  "active_sessions": 0,
+  "timestamp": "2025-07-20T16:33:14.160975"
+}
+```
+
+### 6.2 Bank Process Management
+
+Each bank runs as an **independent Python process** with specialized logging:
+
+```bash
+# Bank A: Wire Transfer Specialist
+[BANK_A] 2025-07-20 16:33:05,123 - INFO - 🏦 Starting Bank A - Wire Transfer Specialist
+[BANK_A] 2025-07-20 16:33:05,124 - INFO - ✅ Successfully registered with consortium
+
+# Bank B: Identity Verification Expert  
+[BANK_B] 2025-07-20 16:33:06,125 - INFO - 🔍 Starting Bank B - Identity Verification Expert
+[BANK_B] 2025-07-20 16:33:06,126 - INFO - ✅ Successfully registered with consortium
+
+# Bank C: Network Pattern Analyst
+[BANK_C] 2025-07-20 16:33:07,127 - INFO - 🌐 Starting Bank C - Network Pattern Analyst  
+[BANK_C] 2025-07-20 16:33:07,128 - INFO - ✅ Successfully registered with consortium
+```
+
+### 6.3 Distributed Web Dashboard
 
 #### 6.3.1 Starting the Dashboard
 
 ```bash
-# Start with private network binding (recommended)
-streamlit run consortium_fraud_ui.py --server.address 192.168.4.100
+# Start distributed UI (connects to consortium hub via HTTP)
+streamlit run distributed_consortium_ui.py
 
-# Or use the launch script
-./start_dashboard.sh
+# Access distributed interface
+open http://localhost:8501
 ```
 
 #### 6.3.2 Dashboard Features
@@ -295,46 +393,162 @@ streamlit run consortium_fraud_ui.py --server.address 0.0.0.0
 
 ## 8. API Reference
 
-### 8.1 Command Line Interface
+### 8.1 Consortium Hub HTTP API
+
+The consortium hub exposes a REST API for participant management and inference coordination:
 
 ```bash
-# Available commands
-python consortium_comparison_score_prototype.py [mode]
-
-# Modes:
-train       # Train and save models only
-inference   # Use pre-trained models for inference only
-list        # List all saved models and information
-full        # Complete demo with training and inference (default)
+# Base URL
+CONSORTIUM_HUB = "http://localhost:8080"
 ```
 
-### 8.2 Core Classes
+#### 8.1.1 Health Check
+```http
+GET /health
+Content-Type: application/json
 
-#### BankSimulator
-
-```python
-from consortium_comparison_score_prototype import BankSimulator
-
-# Initialize bank
-bank = BankSimulator(bank_id="bank_A", data_path="bank_A_data.csv")
-
-# Train model
-accuracy = bank.train_local_model(model_type='xgboost')
-
-# Load existing model
-bank.load_model()
-
-# Predict risk score
-result = bank.predict_risk_score(transaction_features)
+Response:
+{
+  "status": "healthy",
+  "participants": 3,
+  "active_sessions": 0,
+  "timestamp": "2025-07-20T16:33:14.160975"
+}
 ```
 
-#### ConsortiumComparisonService
+#### 8.1.2 Participant Registration
+```http
+POST /register
+Content-Type: application/json
+
+Request:
+{
+  "node_id": "bank_A",
+  "specialty": "wire_transfer_specialist", 
+  "endpoint": "http://localhost:8081",
+  "geolocation": "US-East"
+}
+
+Response:
+{
+  "status": "registered",
+  "session_token": "abc123...",
+  "participants": 3
+}
+```
+
+#### 8.1.3 Inference Request
+```http
+POST /inference
+Content-Type: application/json
+
+Request:
+{
+  "use_case": "wire_transfer_fraud",
+  "features": [0.35, 0.45, 0.75, ...]
+}
+
+Response:
+{
+  "session_id": "sess_123",
+  "status": "distributed",
+  "participants_notified": 3
+}
+```
+
+#### 8.1.4 Score Submission
+```http
+POST /score
+Content-Type: application/json
+
+Request:
+{
+  "session_id": "sess_123",
+  "participant_id": "bank_A",
+  "risk_score": 0.85,
+  "confidence": 0.95
+}
+
+Response:
+{
+  "status": "recorded",
+  "session_status": "collecting"
+}
+```
+
+#### 8.1.5 Results Retrieval
+```http
+GET /results/{session_id}
+Content-Type: application/json
+
+Response:
+{
+  "session_id": "sess_123",
+  "status": "completed",
+  "comparison_score": 0.823,
+  "consensus": "STRONG_CONSENSUS",
+  "scores": {
+    "bank_A": {"risk_score": 0.85, "confidence": 0.95},
+    "bank_B": {"risk_score": 0.82, "confidence": 0.90},
+    "bank_C": {"risk_score": 0.81, "confidence": 0.88}
+  }
+}
+```
+
+### 8.2 Bank Process Management
+
+#### 8.2.1 Generic Bank Process
+
+```bash
+# Generic bank process (Primary approach)
+python generic_bank_process.py --bank-id bank_A --consortium-url http://localhost:8080
+python generic_bank_process.py --bank-id bank_B --consortium-url http://localhost:8080
+python generic_bank_process.py --bank-id bank_C --consortium-url http://localhost:8080
+
+# Alternative: Legacy dedicated bank scripts
+python bank_A_process.py --consortium-url http://localhost:8080
+python bank_B_process.py --consortium-url http://localhost:8080
+python bank_C_process.py --consortium-url http://localhost:8080
+```
+
+#### 8.2.2 ParticipantNode Configuration
 
 ```python
-from consortium_comparison_score_prototype import ConsortiumComparisonService
+from participant_node import ParticipantNode, NodeConfig
 
-# Initialize consortium
-consortium = ConsortiumComparisonService()
+# Configure bank node using generic process
+config = NodeConfig(
+    node_id="bank_A",
+    specialty="wire_transfer_specialist",
+    consortium_url="http://localhost:8080",
+    model_path="models/bank_A_model.pkl",
+    geolocation="US-East"
+)
+
+# Create and start node
+node = ParticipantNode(config)
+if node.register_with_consortium():
+    node.start_polling()
+```
+
+#### 8.2.3 Bank Specialization
+
+```python
+# Optional: Create custom specialization module
+# File: specializations/bank_A_specialization.py
+
+def customize_node(node):
+    """Add custom business logic to the bank node"""
+    original_inference = node.process_inference
+    
+    def enhanced_inference(features):
+        # Custom wire transfer analysis
+        result = original_inference(features)
+        # Apply bank-specific enhancements
+        return result
+    
+    node.process_inference = enhanced_inference
+```
 
 # Register banks
 consortium.register_bank("bank_A", bank_A)
@@ -366,24 +580,54 @@ result = consortium.generate_comparison_score(transaction_features)
 
 ```
 consortium-fraud-detection/
-├── README.md                                    # This file
+├── README.md                                    # This documentation
 ├── requirements.txt                             # Python dependencies
-├── consortium_comparison_score_prototype.py     # Core fraud detection logic
-├── consortium_fraud_ui.py                      # Streamlit web interface
-├── consortium_privacy_preserving_fraud_detection.md  # Architecture documentation
-├── start_dashboard.sh                          # Launch script
-├── .streamlit/
-│   └── config.toml                             # Streamlit configuration
+├── consortium_architecture.md                  # Distributed architecture specification
+│
+├── 🏗️ DISTRIBUTED SYSTEM COMPONENTS (Primary)
+├── consortium_hub.py                           # Central HTTP API server (port 8080)
+├── participant_node.py                         # Base class for bank HTTP clients
+├── generic_bank_process.py                     # **Primary** - Configurable bank process
+├── distributed_consortium_ui.py                # Streamlit UI connecting via HTTP (port 8501)
+├── specializations/                            # Optional bank-specific customizations
+│   └── bank_A_specialization.py               # Example: Wire transfer specialization
+│
+├── 🚀 SYSTEM LAUNCHERS
+├── start_distributed_consortium.py             # Automated full system launcher
+├── start_banks_separately.py                   # Manual individual bank launcher
+│
+├── 🏛️ LEGACY COMPONENTS (Alternative Implementation)
+├── bank_A_process.py                           # Bank A - Dedicated implementation
+├── bank_B_process.py                           # Bank B - Dedicated implementation
+├── bank_C_process.py                           # Bank C - Dedicated implementation
+├── consortium_comparison_score_prototype.py     # Original single-process implementation
+├── consortium_fraud_ui.py                      # Original single-process UI
+├── consortium_ui.py                            # Alternative single-process UI
+│
+├── 📁 DATA & MODELS
 ├── models/                                     # Trained model storage
-│   ├── bank_A_model.pkl
-│   ├── bank_A_metadata.json
-│   ├── bank_B_model.pkl
-│   ├── bank_B_metadata.json
-│   ├── bank_C_model.pkl
-│   └── bank_C_metadata.json
-├── venv/                                       # Virtual environment
-└── [bank_data].csv                            # Synthetic bank datasets
+│   ├── bank_A_model.pkl                       # Bank A specialized model
+│   ├── bank_A_metadata.json                   # Bank A model metadata
+│   ├── bank_B_model.pkl                       # Bank B specialized model  
+│   ├── bank_B_metadata.json                   # Bank B model metadata
+│   ├── bank_C_model.pkl                       # Bank C specialized model
+│   ├── bank_C_metadata.json                   # Bank C model metadata
+│   ├── test_bank_model.pkl                    # Test bank model
+│   └── test_bank_metadata.json                # Test bank metadata
+├── bank_A_data.csv                            # Bank A synthetic dataset
+├── bank_B_data.csv                            # Bank B synthetic dataset
+├── bank_C_data.csv                            # Bank C synthetic dataset
+└── test_bank_data.csv                         # Test bank dataset
 ```
+
+### 🎯 **Key Architecture Files**
+
+- **`consortium_hub.py`** - Central coordinator running Flask HTTP API
+- **`generic_bank_process.py`** - **Primary** configurable bank process (replaces separate bank files)
+- **`participant_node.py`** - HTTP client base class for bank connectivity
+- **`specializations/`** - Optional bank-specific business logic modules
+- **`distributed_consortium_ui.py`** - UI connecting to hub via HTTP requests
+- **`start_distributed_consortium.py`** - One-command launcher for full system
 
 ---
 
@@ -563,9 +807,11 @@ pytest tests/
 
 ### 13.3 Adding Features
 
-1. **Model Improvements**: Modify `BankSimulator` class
-2. **UI Enhancements**: Update `consortium_fraud_ui.py`
-3. **New Architectures**: Extend `ConsortiumComparisonService`
+1. **Bank Process Enhancements**: Modify individual `bank_*_process.py` files for specialized behavior
+2. **Consortium Hub Extensions**: Update `consortium_hub.py` for new API endpoints or aggregation logic
+3. **UI Improvements**: Enhance `distributed_consortium_ui.py` for better visualization
+4. **Participant Node Features**: Extend `participant_node.py` base class for new capabilities
+5. **System Orchestration**: Improve `start_distributed_consortium.py` for better process management
 
 ---
 
@@ -602,25 +848,41 @@ For questions, issues, or contributions:
 
 ## 🚀 Quick Reference
 
-### Essential Commands
+### Essential Commands - Distributed System
 ```bash
-# Complete setup and start
-./start_dashboard.sh
+# 🚀 Start complete distributed system
+python start_distributed_consortium.py
 
-# Train models only
-python consortium_comparison_score_prototype.py train
+# 🏗️ Manual component startup
+python consortium_hub.py                         # Start hub first
+python generic_bank_process.py --bank-id bank_A  # Start Bank A
+python generic_bank_process.py --bank-id bank_B  # Start Bank B  
+python generic_bank_process.py --bank-id bank_C  # Start Bank C
+streamlit run distributed_consortium_ui.py       # Start UI
 
-# Start dashboard (private network)
-streamlit run consortium_fraud_ui.py --server.address 192.168.4.100
+# 🔧 Individual bank management
+python start_banks_separately.py --bank A   # Start specific bank
+python start_banks_separately.py --bank all # Start all banks
 
-# Check system status
-python consortium_comparison_score_prototype.py list
+# 🔍 System health checks
+curl http://localhost:8080/health            # Check consortium hub
+curl http://localhost:8080/health | python -m json.tool  # Pretty JSON
 ```
 
-### Access URLs
-- **Dashboard**: http://192.168.4.100:8501
-- **VS Code**: http://localhost:8501
+### Access URLs - Distributed Architecture
+- **Distributed UI**: http://localhost:8501
+- **Consortium Hub**: http://localhost:8080
+
+### Process Architecture - Zero-Trust Model
+```
+✅ Each bank runs as separate Python process
+✅ HTTP client connections only (outbound-only)
+✅ No inbound ports on bank infrastructure
+✅ Consortium hub coordinates all participants
+✅ Specialized logging per bank process
+✅ Firewall-friendly architecture
+```
 
 ---
 
-*Last updated: July 20, 2025*
+*Last updated: July 20, 2025 - Distributed Process Architecture*

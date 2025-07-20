@@ -38,20 +38,51 @@ class DistributedConsortiumLauncher:
         return process
     
     def start_participant_nodes(self):
-        """Start all participant nodes"""
-        logger.info("🏦 Starting Participant Nodes...")
+        """Start all participant nodes as separate processes"""
+        logger.info("🏦 Starting Participant Nodes as separate processes...")
         
-        cmd = [sys.executable, "participant_node.py", "--all", "--consortium-url", "http://localhost:8080"]
-        process = subprocess.Popen(
-            cmd,
+        bank_processes = []
+        
+        # Start Bank A
+        logger.info("🏦 Starting Bank A - Wire Transfer Specialist...")
+        cmd_a = [sys.executable, "generic_bank_process.py", "--bank-id", "bank_A", "--consortium-url", "http://localhost:8080"]
+        process_a = subprocess.Popen(
+            cmd_a,
             cwd=self.base_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True
         )
+        self.processes.append(("Bank A", process_a))
+        bank_processes.append(process_a)
         
-        self.processes.append(("Participant Nodes", process))
-        return process
+        # Start Bank B
+        logger.info("🔍 Starting Bank B - Identity Verification Expert...")
+        cmd_b = [sys.executable, "generic_bank_process.py", "--bank-id", "bank_B", "--consortium-url", "http://localhost:8080"]
+        process_b = subprocess.Popen(
+            cmd_b,
+            cwd=self.base_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
+        self.processes.append(("Bank B", process_b))
+        bank_processes.append(process_b)
+        
+        # Start Bank C
+        logger.info("🌐 Starting Bank C - Network Pattern Analyst...")
+        cmd_c = [sys.executable, "generic_bank_process.py", "--bank-id", "bank_C", "--consortium-url", "http://localhost:8080"]
+        process_c = subprocess.Popen(
+            cmd_c,
+            cwd=self.base_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
+        self.processes.append(("Bank C", process_c))
+        bank_processes.append(process_c)
+        
+        return bank_processes
     
     def start_ui(self):
         """Start the Streamlit UI"""
@@ -143,11 +174,11 @@ class DistributedConsortiumLauncher:
                 self.stop_all()
                 return False
             
-            # 3. Start participant nodes
-            nodes_process = self.start_participant_nodes()
+            # 3. Start participant nodes (separate processes)
+            bank_processes = self.start_participant_nodes()
             
             # 4. Wait a bit for nodes to register
-            time.sleep(5)
+            time.sleep(8)  # Give more time for separate processes to start
             
             # 5. Run test
             test_passed = self.run_test()

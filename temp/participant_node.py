@@ -60,7 +60,7 @@ class ParticipantNode:
             registration_data = {
                 "node_id": self.config.node_id,
                 "specialty": self.config.specialty,
-                "endpoint": f"http://localhost:808{self.config.node_id[-1]}",  # Mock endpoint
+                "endpoint": None,  # No inbound endpoint - outbound-only connection
                 "geolocation": self.config.geolocation
             }
             
