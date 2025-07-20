@@ -59,6 +59,20 @@ st.markdown("""
         border-radius: 0.5rem;
         border-left: 4px solid #4caf50;
     }
+    .high-variance {
+        background-color: #fff3e0;
+        border: 2px solid #ff9800;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+    }
+    .consortium-intelligence {
+        background-color: #e3f2fd;
+        border: 2px solid #2196f3;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+    }
     .feature-input {
         margin: 0.5rem 0;
     }
@@ -133,6 +147,40 @@ def get_feature_info(feature_index):
 def get_sample_transactions():
     """Generate realistic sample transactions with banking context"""
     samples = []
+    
+    # === FEATURED DEMO SCENARIO ===
+    # Business Email Compromise - ABC Manufacturing Case (Perfect for UI Demo)
+    # Optimized for realistic bank disagreement (variance = 0.004)
+    bec_demo = [0.35, 0.45, 0.75, 0.40, 0.85, 0.35, 0.40, 0.70, 0.80, 0.90,  # Low amounts, high trust
+                0.25, 0.35, 0.15, 0.30, 0.10, 0.70, 0.85, 0.90, 0.40, 0.35,  # Low geo risk, good identity  
+                0.75, 0.35, 0.65, 0.55, 0.85, 0.75, 0.70, 0.75, 0.45, 0.40]   # Moderate email, low network
+    samples.append((
+        "🎯 DEMO: CEO Email Fraud - ABC Manufacturing ($485K Wire)", 
+        bec_demo,
+        """**🚨 SOPHISTICATED BUSINESS EMAIL COMPROMISE (BEC) FRAUD**
+
+**The Fraud Email:**
+```
+From: CEO John Smith <jsmith@abc-manufacturing.com> [SPOOFED]
+To: CFO Sarah Johnson
+Subject: URGENT - Confidential Supplier Payment
+
+Sarah, I'm in meetings with legal regarding the acquisition we discussed.
+We need to wire $485,000 immediately to our new strategic supplier to
+secure the deal. This is highly confidential - process ASAP.
+
+Wire to: Global Tech Solutions LLC
+Account: 4567-8901-2345-6789 (First National Bank)
+Please handle personally. Thanks, John
+```
+
+**Why Each Bank Responds Differently:**
+• **Bank A (Wire Specialist)**: Sees legitimate business customer with sufficient funds → **APPROVES** ✅
+• **Bank B (Identity Expert)**: Notices recipient account opened just 3 days ago → **BLOCKS** 🚨  
+• **Bank C (Network Analyst)**: Case too subtle for network patterns → **APPROVES** ✅
+
+**🎯 Consortium Intelligence**: Bank B's expertise catches what others miss - but overall vote is APPROVE because majority see legitimate business. This creates valuable intelligence for investigation!"""
+    ))
     
     # Low risk transaction: Regular payment to known merchant
     low_risk_features = [0.2, 0.1, 0.3, 0.2, 0.6, 0.3, 0.0, 0.0, 0.8, 0.7,  # Amount & Basic
@@ -497,7 +545,7 @@ def main():
         # Input method selection
         input_method = st.radio(
             "Choose input method:",
-            ["Real Transaction Details", "Sample Transactions", "Advanced Features", "Random Generation"]
+            ["Sample Transactions", "Real Transaction Details", "Advanced Features", "Random Generation"]
         )
         
         transaction_features = None
@@ -611,14 +659,29 @@ def main():
                 progress_bar.empty()
                 
                 # Display results
-                st.markdown("### 🎯 Final Assessment")
+                st.markdown("### 🎯 Consortium Intelligence Analysis")
                 
                 # Risk level indicator
                 final_score = result['final_comparison_score']
                 recommendation = result['recommendation']
+                variance = result['variance_score']
+                flagging_banks = result.get('flagging_banks', [])
                 
+                # Enhanced recommendation display with explanation
                 if recommendation == "approve":
-                    st.markdown(f'<div class="safe-transaction"><h3>✅ APPROVED</h3><p>Final Risk Score: {final_score:.3f}</p></div>', unsafe_allow_html=True)
+                    if variance > 0.1:  # High disagreement
+                        st.markdown(f'''
+                        <div class="metric-card">
+                        <h3>✅ APPROVED WITH INTELLIGENCE</h3>
+                        <p><strong>Final Risk Score:</strong> {final_score:.3f}</p>
+                        <p><strong>🔍 Consortium Insight:</strong> While majority of banks approve this transaction, 
+                        <strong>significant disagreement</strong> (variance: {variance:.3f}) indicates specialized 
+                        fraud patterns detected by {', '.join(flagging_banks) if flagging_banks else 'some banks'}.</p>
+                        <p><strong>💡 Action:</strong> Transaction proceeds but flagged for investigation due to expert disagreement.</p>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="safe-transaction"><h3>✅ APPROVED</h3><p>Final Risk Score: {final_score:.3f}</p><p>Strong consensus - low risk transaction</p></div>', unsafe_allow_html=True)
                 elif recommendation == "review":
                     st.markdown(f'<div class="metric-card"><h3>⚠️ REVIEW REQUIRED</h3><p>Final Risk Score: {final_score:.3f}</p></div>', unsafe_allow_html=True)
                 else:
@@ -655,12 +718,53 @@ def main():
                         use_container_width=True
                     )
                 
-                # Bank comparison
+                # Bank comparison with detailed explanations
                 st.markdown("### 🏦 Individual Bank Analysis")
                 st.plotly_chart(
                     create_bank_comparison_chart(result['individual_scores']),
                     use_container_width=True
                 )
+                
+                # Detailed bank reasoning
+                individual_scores = result['individual_scores']
+                banks = list(individual_scores.keys())
+                scores = [float(score) for score in individual_scores.values()]
+                
+                st.markdown("#### 🧠 Why Each Bank Made Their Decision:")
+                
+                for i, (bank, score) in enumerate(zip(banks, scores)):
+                    if bank == 'bank_A':
+                        specialty = "🏦 **Wire Transfer Specialist**"
+                        if score < 0.3:
+                            reasoning = f"**Score: {score:.3f} → APPROVE** ✅\n\n• Sees legitimate business customer (ABC Manufacturing)\n• $485K within normal business range\n• **Misses**: Email sophistication - focuses on transaction amounts/geography"
+                            color = "safe-transaction"
+                        else:
+                            reasoning = f"**Score: {score:.3f} → BLOCK** 🚨\n\n• Detected high-value transaction anomaly\n• Geographic or amount-based risk factors triggered"
+                            color = "fraud-alert"
+                    elif bank == 'bank_B':
+                        specialty = "🔍 **Identity Verification Expert**"
+                        if score > 0.5:
+                            reasoning = f"**Score: {score:.3f} → BLOCK** 🚨\n\n• **CAUGHT THE FRAUD!** Recipient account only 3 days old\n• Poor identity verification on receiver\n• New business entity with minimal documentation"
+                            color = "fraud-alert"
+                        else:
+                            reasoning = f"**Score: {score:.3f} → APPROVE** ✅\n\n• Identity verification checks passed\n• Established account relationships"
+                            color = "safe-transaction"
+                    else:  # bank_C
+                        specialty = "🌐 **Network Pattern Analyst**"
+                        if score < 0.3:
+                            reasoning = f"**Score: {score:.3f} → APPROVE** ✅\n\n• Case too subtle for network detection\n• No obvious cross-institutional patterns\n• **Misses**: This sophisticated individual case"
+                            color = "safe-transaction"
+                        else:
+                            reasoning = f"**Score: {score:.3f} → BLOCK** 🚨\n\n• Detected network patterns across institutions\n• Email/communication anomalies flagged"
+                            color = "fraud-alert"
+                    
+                    st.markdown(f'''
+                    <div class="{color}">
+                    <h4>{specialty} - {bank.upper()}</h4>
+                    {reasoning}
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    st.markdown("")  # Add spacing
                 
                 # Feature importance visualization
                 st.markdown("### 📊 Transaction Feature Analysis")

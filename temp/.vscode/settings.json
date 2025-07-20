@@ -1,0 +1,28 @@
+{
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": true,
+        "markdown": true,
+        "scminput": false
+    },
+    "github.copilot.advanced": {
+        "length": 500,
+        "temperature": 0.1
+    },
+    // Include context from external directories
+    "files.associations": {
+        "*.md": "markdown",
+        "*.json": "jsonc"
+    },
+    // Additional context paths for AI agents
+    "copilot.contextPaths": [
+        "C:/Users/ramkr/hello-world/temp/fraud_scenarios_explained.md",
+        "C:/Users/ramkr/hello-world/temp/consortium_privacy_preserving_fraud_detection.md",
+        "C:/path/to/external/documentation/**/*.md",
+        "C:/path/to/external/config/**/*.json"
+    ],
+    // Workspace context for better AI understanding
+    "workbench.editor.enablePreview": false,
+    "editor.suggest.showWords": true,
+    "editor.wordBasedSuggestions": "allDocuments"
+}

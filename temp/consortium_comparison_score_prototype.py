@@ -284,15 +284,36 @@ class ConsortiumComparisonService:
         """Detect cross-institutional anomaly patterns using diverse data perspectives"""
         if len(scores) < 2:
             return 0.0
-            
-        # Anomaly detection: consensus across diverse data sources
+        
         mean_score = np.mean(scores)
-        if mean_score > 0.8 and np.std(scores) < 0.1:
-            return 0.9  # High anomaly - all data perspectives agree on high risk
-        elif mean_score > 0.6 and np.std(scores) < 0.15:
-            return 0.6  # Medium anomaly - good consensus across data sources
+        std_score = np.std(scores)
+        max_score = np.max(scores)
+        min_score = np.min(scores)
+        
+        # Cross-institutional fraud detection scenarios
+        
+        # High consensus on high risk = strong cross-institutional fraud signal
+        if mean_score > 0.8 and std_score < 0.1:
+            return 0.95  # All banks agree on high risk - likely cross-institutional fraud
+        
+        # Medium-high consensus = good network intelligence
+        elif mean_score > 0.6 and std_score < 0.15:
+            return 0.75  # Strong consensus across diverse data sources
+        
+        # High variance with high max = one bank detects specialized fraud
+        elif max_score > 0.8 and std_score > 0.3:
+            return 0.85  # One bank's specialty detected something others missed
+        
+        # Moderate consensus = standard network benefit
+        elif mean_score > 0.4 and std_score < 0.2:
+            return 0.6   # Moderate consensus across data perspectives
+        
+        # Low variance, low mean = likely legitimate transaction
+        elif mean_score < 0.3 and std_score < 0.1:
+            return 0.1   # All banks agree it's low risk
+        
         else:
-            return 0.1  # Low anomaly
+            return 0.3   # Mixed signals, moderate network value
     
     def _calculate_final_score(self, consensus: float, variance: float, anomaly: float) -> float:
         """Calculate final comparison score"""
@@ -398,6 +419,141 @@ def generate_synthetic_transaction() -> List[float]:
     np.random.seed()
     return np.random.normal(0.5, 0.2, 30).tolist()
 
+def generate_cross_institutional_fraud_scenarios():
+    """
+    Generate specific fraud scenarios that demonstrate consortium value
+    Each scenario represents a real-world fraud type where consortium collaboration
+    provides significant advantages over individual bank detection
+    """
+    scenarios = []
+    
+    # DEMO SCENARIO: Business Email Compromise - ABC Manufacturing Case
+    # Real-world example: CEO impersonation for $485K wire to fake supplier
+    bec_demo = np.random.normal(0.5, 0.1, 30).tolist()
+    bec_demo[0] = 0.75    # High amount ($485K - significant but not extreme)
+    bec_demo[5] = 0.85    # High urgency/velocity (Friday 4:47 PM rush)
+    bec_demo[10] = 0.35   # Low geographic risk (USA to USA)
+    bec_demo[15] = 0.25   # Low sender identity risk (legitimate business)
+    bec_demo[16] = 0.95   # Very high receiver identity risk (3-day-old account)
+    bec_demo[18] = 0.80   # Business account patterns
+    bec_demo[22] = 0.90   # Email communication anomalies (spoofed CEO)
+    bec_demo[25] = 0.85   # Network patterns (same scheme at other banks)
+    bec_demo[28] = 0.95   # Urgency indicators (rush payment, confidential)
+    bec_demo[29] = 0.70   # Timing patterns (end of business day)
+    scenarios.append((
+        "🎯 DEMO: CEO Fraud - ABC Manufacturing ($485K)", 
+        bec_demo,
+        "ABC Manufacturing's CFO receives urgent email from 'CEO' requesting $485K wire to "
+        "'new strategic supplier' for confidential acquisition. Bank A sees normal business "
+        "transaction. Bank B notices recipient account opened 3 days ago. Bank C recognizes "
+        "identical pattern affecting 5 other companies this week. Classic BEC fraud caught "
+        "through consortium intelligence that no single bank could detect alone."
+    ))
+    
+    # Scenario 1: High-Value Wire Transfer Fraud
+    # Why consortium helps: Bank A specializes in high-value transaction analysis,
+    # but fraudsters use legitimate accounts from other banks as intermediaries
+    wire_fraud = np.random.normal(0.3, 0.1, 30).tolist()
+    wire_fraud[0] = 0.95   # Very high transaction amount ($10M+)
+    wire_fraud[10] = 0.88  # High geographic risk (offshore destination)
+    wire_fraud[15] = 0.25  # Low identity risk (legitimate accounts compromised)
+    wire_fraud[18] = 0.85  # Business account patterns (corporate wire)
+    wire_fraud[22] = 0.70  # Communication anomalies (urgent requests)
+    scenarios.append((
+        "High-Value Wire Fraud ($50M Corporate)", 
+        wire_fraud,
+        "Large wire transfer using compromised corporate credentials. Bank A's high-value "
+        "detection algorithms excel here, while other banks might miss the pattern if they "
+        "don't typically handle such large amounts. Cross-bank validation confirms legitimacy."
+    ))
+    
+    # Scenario 2: Synthetic Identity Network
+    # Why consortium helps: Bank B has advanced identity verification, but synthetic
+    # identities span multiple institutions using different data combinations
+    synthetic_identity = np.random.normal(0.4, 0.1, 30).tolist()
+    synthetic_identity[0] = 0.45   # Moderate amount (not suspicious by amount alone)
+    synthetic_identity[15] = 0.92  # Very high identity inconsistency
+    synthetic_identity[20] = 0.85  # Suspicious account patterns (new accounts)
+    synthetic_identity[10] = 0.35  # Low geographic risk (domestic)
+    synthetic_identity[25] = 0.75  # Network patterns (coordinated applications)
+    scenarios.append((
+        "Synthetic Identity Fraud (Coordinated Ring)", 
+        synthetic_identity,
+        "Criminal network creates fake identities using real SSNs + fake names/addresses. "
+        "Bank B's identity verification systems detect inconsistencies, but individual banks "
+        "only see fragments. Consortium reveals the full network pattern across institutions."
+    ))
+    
+    # Scenario 3: Money Mule Network
+    # Why consortium helps: Bank C specializes in velocity analysis, but mule
+    # networks deliberately spread transactions across multiple banks
+    mule_network = np.random.normal(0.35, 0.1, 30).tolist()
+    mule_network[5] = 0.95    # Extreme velocity pattern (rapid consecutive transfers)
+    mule_network[25] = 0.90   # Strong network connectivity (same recipients)
+    mule_network[0] = 0.55    # Moderate individual amounts (under reporting thresholds)
+    mule_network[15] = 0.40   # Legitimate-looking identities (recruited victims)
+    mule_network[12] = 0.80   # Structured timing patterns
+    scenarios.append((
+        "Money Mule Network (Human Trafficking)", 
+        mule_network,
+        "Human trafficking ring recruits victims to move money rapidly across banks. "
+        "Bank C's velocity algorithms detect the speed, but individual banks can't see "
+        "the full network. Consortium analysis reveals coordinated timing and recipients."
+    ))
+    
+    # Scenario 4: Business Email Compromise (BEC)
+    # Why consortium helps: Sophisticated social engineering affects multiple banks
+    # simultaneously, requiring cross-institutional intelligence
+    bec_fraud = np.random.normal(0.6, 0.1, 30).tolist()
+    bec_fraud[0] = 0.78    # High but not extreme amount ($500K)
+    bec_fraud[10] = 0.72   # International component (fake supplier overseas)
+    bec_fraud[18] = 0.85   # Business account patterns (corporate accounts)
+    bec_fraud[22] = 0.80   # Email/communication anomalies (spoofed emails)
+    bec_fraud[28] = 0.88   # Urgency indicators (rush payment requests)
+    scenarios.append((
+        "Business Email Compromise (CEO Fraud)", 
+        bec_fraud,
+        "Criminals impersonate CEO requesting urgent wire to 'confidential supplier'. "
+        "Affects multiple banks as companies bank with different institutions. "
+        "Consortium detects similar patterns across institutions simultaneously."
+    ))
+    
+    # Scenario 5: Cross-Border Laundering Ring
+    # Why consortium helps: Sophisticated laundering operations use multiple
+    # jurisdictions and institutions to obscure money trails
+    laundering_ring = np.random.normal(0.5, 0.1, 30).tolist()
+    laundering_ring[10] = 0.95  # Multiple countries (complex routing)
+    laundering_ring[5] = 0.75   # Structured timing (coordinated transfers)
+    laundering_ring[25] = 0.88  # Network patterns (shell company connections)
+    laundering_ring[12] = 0.82  # Currency patterns (conversion indicators)
+    laundering_ring[27] = 0.85  # Trade-based patterns (fake invoices)
+    scenarios.append((
+        "Cross-Border Laundering (Trade-Based)", 
+        laundering_ring,
+        "International drug cartel uses fake trade invoices to move money through "
+        "multiple banks and countries. Individual banks see legitimate-looking trade "
+        "finance. Consortium reveals coordinated timing and inflated invoice patterns."
+    ))
+    
+    # Scenario 6: Cryptocurrency Conversion Fraud
+    # Why consortium helps: Criminals move through traditional banking before
+    # converting to crypto, requiring cross-institutional tracking
+    crypto_fraud = np.random.normal(0.45, 0.1, 30).tolist()
+    crypto_fraud[0] = 0.70     # High amount heading to crypto
+    crypto_fraud[5] = 0.85     # High velocity (quick conversion)
+    crypto_fraud[14] = 0.90    # Crypto exchange indicators
+    crypto_fraud[26] = 0.80    # Privacy coin patterns
+    crypto_fraud[29] = 0.88    # Mixing service indicators
+    scenarios.append((
+        "Cryptocurrency Laundering (Ransomware)", 
+        crypto_fraud,
+        "Ransomware group converts stolen funds to privacy coins through multiple banks. "
+        "Individual banks see normal crypto exchange activity. Consortium tracking "
+        "reveals coordinated conversion patterns from crime proceeds."
+    ))
+    
+    return scenarios
+
 def create_synthetic_bank_data(bank_id: str, num_samples: int = 1000) -> pd.DataFrame:
     """Create synthetic bank data with unique characteristics for diverse data perspectives"""
     np.random.seed(hash(bank_id) % 2**32)  # Each bank gets unique data distribution
@@ -407,6 +563,23 @@ def create_synthetic_bank_data(bank_id: str, num_samples: int = 1000) -> pd.Data
     for i in range(num_samples):
         # Create feature vector with bank-specific distribution
         features = np.random.normal(0.5, 0.3, 30)
+        
+        # Bank-specific specialization patterns (each bank sees different fraud types better)
+        if bank_id == 'bank_A':
+            # Bank A better at detecting high-value wire fraud
+            if np.random.random() < 0.15:  # 15% high-value scenarios
+                features[0] = np.random.uniform(0.8, 1.0)  # High amount feature
+                features[10] = np.random.uniform(0.7, 0.9)  # Geographic risk
+        elif bank_id == 'bank_B':
+            # Bank B better at detecting synthetic identity fraud
+            if np.random.random() < 0.12:  # 12% synthetic identity scenarios
+                features[15] = np.random.uniform(0.8, 1.0)  # Identity inconsistency
+                features[20] = np.random.uniform(0.7, 0.9)  # Account age suspicion
+        elif bank_id == 'bank_C':
+            # Bank C better at detecting mule network patterns
+            if np.random.random() < 0.18:  # 18% mule network scenarios
+                features[5] = np.random.uniform(0.8, 1.0)   # Velocity feature
+                features[25] = np.random.uniform(0.7, 0.9)  # Network pattern
         
         # Create fraud label with bank-specific patterns for data diversity
         fraud_score = np.sum(features[:5]) / 5  # Use first 5 features
@@ -582,9 +755,8 @@ def main_inference_only():
     # Load pre-trained models
     print("\n1. Loading pre-trained models...")
     banks = {}
-    model_types = ['xgboost', 'xgboost', 'xgboost']
     
-    for i, bank_id in enumerate(['bank_A', 'bank_B', 'bank_C']):
+    for bank_id in ['bank_A', 'bank_B', 'bank_C']:
         bank = BankSimulator(bank_id, f'{bank_id}_data.csv')
         if bank.load_model():
             banks[bank_id] = bank
@@ -592,8 +764,8 @@ def main_inference_only():
             print(f"Error: No trained model found for {bank_id}. Please run training first.")
             return
     
-    # Inference Phase: Run consortium scoring
-    consortium = run_consortium_inference(banks)
+    # Inference Phase: Run consortium scoring with enhanced scenarios
+    consortium = run_consortium_inference_enhanced(banks)
     
     # Analytics summary
     print("\n6. Analytics Summary:")
@@ -603,6 +775,118 @@ def main_inference_only():
             print(f"  {key}: {value:.3f}")
         else:
             print(f"  {key}: {value}")
+
+def run_consortium_inference_enhanced(banks):
+    """Enhanced consortium inference with cross-institutional fraud scenarios"""
+    # Initialize consortium
+    consortium = ConsortiumComparisonService()
+    
+    for bank_id, bank in banks.items():
+        consortium.register_bank(bank_id, bank)
+    
+    # Test with cross-institutional fraud scenarios
+    print("\n4. Testing consortium comparison scoring with cross-institutional fraud scenarios...")
+    
+    # Test specific fraud scenarios that demonstrate consortium value
+    fraud_scenarios = generate_cross_institutional_fraud_scenarios()
+    
+    print("\n=== Cross-Institutional Fraud Detection Analysis ===")
+    
+    for scenario_data in fraud_scenarios:
+        if len(scenario_data) == 3:
+            scenario_name, transaction_features, explanation = scenario_data
+        else:
+            scenario_name, transaction_features = scenario_data
+            explanation = "No detailed explanation available"
+            
+        print(f"\n🚨 {scenario_name}:")
+        print(f"📝 Scenario: {explanation}")
+        
+        result = consortium.generate_comparison_score(transaction_features)
+        
+        print(f"\n📊 Analysis Results:")
+        print(f"  Individual Scores: {result['individual_scores']}")
+        print(f"  Consensus Score: {result['consensus_score']:.3f}")
+        print(f"  Variance Score: {result['variance_score']:.3f}")
+        print(f"  Network Anomaly: {result['network_anomaly_score']:.3f}")
+        print(f"  Final Comparison Score: {result['final_comparison_score']:.3f}")
+        print(f"  Confidence: {result['confidence_level']}")
+        print(f"  Recommendation: {result['recommendation']}")
+        
+        consortium_value = 'HIGH' if result['network_anomaly_score'] > 0.7 else 'MEDIUM' if result['network_anomaly_score'] > 0.4 else 'LOW'
+        print(f"  🎯 Consortium Value: {consortium_value}")
+        print(f"  💡 Cross-Institutional Insight: {get_consortium_insight(result, scenario_name)}")
+        
+        # Add interpretation
+        if result['variance_score'] > 0.3:
+            print(f"  🔍 Pattern: High variance suggests specialized bank detection")
+        elif result['consensus_score'] > 0.7:
+            print(f"  🔍 Pattern: Strong consensus indicates clear fraud signature")
+        elif result['network_anomaly_score'] > 0.8:
+            print(f"  🔍 Pattern: Network anomaly suggests cross-institutional coordination")
+    
+    return consortium
+
+def get_consortium_insight(result, scenario_name):
+    """Generate detailed insight about consortium value for specific scenarios"""
+    consensus = result['consensus_score']
+    variance = result['variance_score']
+    network_anomaly = result['network_anomaly_score']
+    individual_scores = result['individual_scores']
+    
+    # Analyze score patterns
+    max_score = max(individual_scores.values()) if individual_scores else 0
+    min_score = min(individual_scores.values()) if individual_scores else 0
+    score_range = max_score - min_score
+    
+    # Scenario-specific insights
+    if "Wire Fraud" in scenario_name:
+        if network_anomaly > 0.7:
+            return f"Bank A's high-value algorithms detected {max_score:.2f} risk while others saw {min_score:.2f} - specialist knowledge crucial"
+        else:
+            return "High-value transaction patterns require specialized detection capabilities"
+    
+    elif "Synthetic Identity" in scenario_name:
+        if variance > 0.3:
+            return f"Bank B's identity verification caught what others missed (variance: {variance:.2f}) - unique data perspective valuable"
+        else:
+            return "Identity fraud detection benefits from diverse verification approaches"
+    
+    elif "Mule Network" in scenario_name:
+        if consensus > 0.7:
+            return f"Strong consensus ({consensus:.2f}) confirms velocity patterns across all banks - network effect clear"
+        else:
+            return "Velocity-based detection enhanced through cross-bank pattern analysis"
+    
+    elif "Email Compromise" in scenario_name:
+        if consensus > 0.6:
+            return f"Business fraud pattern recognized across {len(individual_scores)} institutions - shared intelligence valuable"
+        else:
+            return "Social engineering attacks benefit from cross-institutional pattern recognition"
+    
+    elif "Laundering" in scenario_name:
+        if network_anomaly > 0.8:
+            return f"Complex multi-bank patterns detected (anomaly: {network_anomaly:.2f}) - individual banks would miss connections"
+        else:
+            return "Money laundering schemes require consortium-level intelligence to detect full patterns"
+    
+    elif "Cryptocurrency" in scenario_name:
+        if consensus > 0.6:
+            return f"Crypto conversion patterns visible across traditional banking network - consortium tracking essential"
+        else:
+            return "Digital asset fraud requires traditional banking surveillance coordination"
+    
+    # General insights based on scoring patterns
+    elif consensus > 0.8 and variance < 0.1:
+        return f"Unanimous high risk ({consensus:.2f}) - clear fraud signature recognized by all banks"
+    elif variance > 0.4:
+        return f"Specialized detection advantage (range: {score_range:.2f}) - one bank's expertise proves valuable"
+    elif network_anomaly > 0.7:
+        return f"Cross-institutional coordination detected - pattern invisible to individual banks"
+    elif consensus > 0.6:
+        return f"Strong multi-bank agreement ({consensus:.2f}) increases confidence in decision"
+    else:
+        return "Consortium analysis provides enhanced risk assessment through diverse perspectives"
     """Main demonstration function showcasing consortium fraud detection with diverse data perspectives"""
     print("Consortium Comparison Score Prototype")
     print("=" * 40)

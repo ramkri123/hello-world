@@ -2,6 +2,29 @@
 
 A privacy-preserving fraud detection system that enables banks to collaborate on fraud detection without exposing sensitive data or model weights. This implementation demonstrates the **Score Sharing Consortium** architecture with an interactive web interface.
 
+## 🧠 Agent Context & External References
+
+### Core Documentation
+- `fraud_scenarios_explained.md` - Detailed explanations of 6 major cross-institutional fraud scenarios
+- `consortium_privacy_preserving_fraud_detection.md` - Technical architecture and implementation details
+- `agent_context.json` - Structured project context for AI agents
+
+### External Context Sources
+```
+External Banking Regulations: C:/path/to/external/banking_regulations/
+External Fraud Patterns: C:/path/to/external/fraud_intelligence/
+External Compliance: C:/path/to/external/compliance_frameworks/
+External Research: C:/path/to/external/research_papers/
+```
+
+### Key Fraud Scenarios (Maximum Consortium Value)
+1. **High-Value Wire Fraud** - Bank A specialization in $50M+ corporate transfers
+2. **Synthetic Identity Networks** - Bank B expertise in identity verification
+3. **Money Mule Networks** - Bank C velocity and timing analysis
+4. **Business Email Compromise** - Cross-institutional pattern recognition
+5. **Cross-Border Laundering** - Multi-country coordination detection
+6. **Cryptocurrency Laundering** - Traditional-to-crypto conversion tracking
+
 ## 📋 Table of Contents
 
 1. [Overview](#1-overview)

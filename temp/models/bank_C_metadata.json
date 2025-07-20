@@ -1,7 +1,7 @@
 {
   "bank_id": "bank_C",
   "model_type": "xgboost",
-  "model_confidence": 0.865,
+  "model_confidence": 0.9975,
   "model_class": "XGBClassifier",
-  "timestamp": "2025-07-19T23:21:54.628225"
+  "timestamp": "2025-07-20T14:26:38.930682"
 }

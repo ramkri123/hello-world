@@ -1,0 +1,21 @@
+# Include these files for context
+!fraud_scenarios_explained.md
+!consortium_privacy_preserving_fraud_detection.md
+!agent_context.json
+!README.md
+
+# Include external documentation if accessible
+!C:/path/to/external/documentation/**/*.md
+!C:/path/to/external/config/**/*.json
+
+# Exclude these from context
+__pycache__/
+*.pyc
+.venv/
+models/*.pkl
+*.csv
+
+# Include specific external context files
+!C:/external/banking_regulations.md
+!C:/external/fraud_patterns.json
+!C:/external/compliance_requirements.md
