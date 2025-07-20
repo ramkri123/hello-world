@@ -82,25 +82,217 @@ def load_consortium_models():
     
     return banks
 
+# Real banking transaction field mappings
+TRANSACTION_FIELD_MAPPING = {
+    # Transaction Amount & Basic Info (Features 0-9)
+    0: {"name": "Transaction Amount (Normalized)", "category": "Amount", "description": "Transaction amount normalized by account history"},
+    1: {"name": "Account Balance Ratio", "category": "Amount", "description": "Transaction amount / current account balance"},
+    2: {"name": "Daily Spending Ratio", "category": "Amount", "description": "Transaction amount / average daily spending"},
+    3: {"name": "Time Since Last Transaction", "category": "Timing", "description": "Hours since last transaction (normalized)"},
+    4: {"name": "Transaction Hour", "category": "Timing", "description": "Hour of day (0-23, normalized)"},
+    5: {"name": "Day of Week", "category": "Timing", "description": "Day of week (0-6, normalized)"},
+    6: {"name": "Is Weekend", "category": "Timing", "description": "Whether transaction occurs on weekend"},
+    7: {"name": "Is Holiday", "category": "Timing", "description": "Whether transaction occurs on holiday"},
+    8: {"name": "Account Age", "category": "Account", "description": "Age of sender account in years (normalized)"},
+    9: {"name": "Account Activity Level", "category": "Account", "description": "Historical transaction frequency"},
+    
+    # Geographic & Location Features (Features 10-19)
+    10: {"name": "Sender Location Risk", "category": "Geography", "description": "Risk score of sender's location"},
+    11: {"name": "Receiver Location Risk", "category": "Geography", "description": "Risk score of receiver's location"},
+    12: {"name": "Cross-Border Transaction", "category": "Geography", "description": "Whether transaction crosses country borders"},
+    13: {"name": "Distance from Home", "category": "Geography", "description": "Distance from account holder's typical location"},
+    14: {"name": "High-Risk Country", "category": "Geography", "description": "Whether involves high-risk jurisdiction"},
+    15: {"name": "Sender-Receiver Distance", "category": "Geography", "description": "Geographic distance between parties"},
+    16: {"name": "ATM vs Online", "category": "Channel", "description": "Transaction channel type"},
+    17: {"name": "Mobile vs Desktop", "category": "Channel", "description": "Device type used for transaction"},
+    18: {"name": "New Device", "category": "Channel", "description": "Whether device is new for this account"},
+    19: {"name": "VPN Usage", "category": "Channel", "description": "Whether VPN was detected"},
+    
+    # Behavioral & Pattern Features (Features 20-29)
+    20: {"name": "Velocity Score", "category": "Behavior", "description": "Transaction frequency in last 24 hours"},
+    21: {"name": "Round Amount Indicator", "category": "Behavior", "description": "Whether amount is suspiciously round"},
+    22: {"name": "Receiver Account Age", "category": "Account", "description": "Age of receiver account"},
+    23: {"name": "Receiver Risk Score", "category": "Account", "description": "Historical risk score of receiver"},
+    24: {"name": "Previous Relationship", "category": "Relationship", "description": "History between sender and receiver"},
+    25: {"name": "Business Hours", "category": "Timing", "description": "Whether during typical business hours"},
+    26: {"name": "Amount Consistency", "category": "Behavior", "description": "Consistency with sender's typical amounts"},
+    27: {"name": "Type Consistency", "category": "Behavior", "description": "Consistency with sender's typical transaction types"},
+    28: {"name": "Failed Attempts", "category": "Behavior", "description": "Recent failed transaction attempts"},
+    29: {"name": "Multiple Recipients", "category": "Behavior", "description": "Multiple recipients in short timeframe"}
+}
+
+def get_feature_info(feature_index):
+    """Get human-readable information about a feature"""
+    return TRANSACTION_FIELD_MAPPING.get(feature_index, {
+        "name": f"Feature {feature_index}",
+        "category": "Unknown",
+        "description": "Feature description not available"
+    })
+
 @st.cache_data
 def get_sample_transactions():
-    """Generate sample transactions for quick testing"""
-    np.random.seed(42)
+    """Generate realistic sample transactions with banking context"""
     samples = []
     
-    # Low risk transaction
-    low_risk = np.random.normal(0.3, 0.2, 30).tolist()
-    samples.append(("Low Risk Transaction", low_risk))
+    # Low risk transaction: Regular payment to known merchant
+    low_risk_features = [0.2, 0.1, 0.3, 0.2, 0.6, 0.3, 0.0, 0.0, 0.8, 0.7,  # Amount & Basic
+                        0.1, 0.1, 0.0, 0.1, 0.0, 0.2, 0.8, 0.7, 0.0, 0.0,  # Geographic
+                        0.2, 0.0, 0.9, 0.1, 0.9, 1.0, 0.9, 0.9, 0.0, 0.0]  # Behavioral
+    samples.append(("Low Risk: Regular merchant payment ($50)", low_risk_features))
     
-    # Medium risk transaction
-    medium_risk = np.random.normal(0.6, 0.3, 30).tolist()
-    samples.append(("Medium Risk Transaction", medium_risk))
+    # Medium risk transaction: Large amount to new recipient
+    medium_risk_features = [0.8, 0.4, 0.7, 0.1, 0.9, 0.8, 0.0, 0.0, 0.6, 0.5,  # Amount & Basic
+                           0.3, 0.4, 0.0, 0.3, 0.0, 0.6, 0.5, 0.3, 0.3, 0.1,  # Geographic
+                           0.4, 0.3, 0.2, 0.6, 0.1, 0.7, 0.4, 0.3, 0.2, 0.3]  # Behavioral
+    samples.append(("Medium Risk: Large payment to new recipient ($5,000)", medium_risk_features))
     
-    # High risk transaction
-    high_risk = np.random.normal(0.9, 0.2, 30).tolist()
-    samples.append(("High Risk Transaction", high_risk))
+    # High risk transaction: Unusual international transfer
+    high_risk_features = [0.95, 0.9, 0.9, 0.05, 0.1, 0.9, 1.0, 0.0, 0.3, 0.2,  # Amount & Basic
+                          0.9, 0.9, 1.0, 0.8, 1.0, 0.9, 0.2, 0.1, 1.0, 1.0,  # Geographic
+                          0.9, 1.0, 0.1, 0.9, 0.0, 0.0, 0.1, 0.1, 0.8, 0.7]  # Behavioral
+    samples.append(("High Risk: Unusual international transfer ($50,000)", high_risk_features))
     
     return samples
+
+def create_transaction_form():
+    """Create a realistic transaction input form"""
+    st.markdown("### 💳 Enter Transaction Details")
+    
+    # Transaction Basic Info
+    with st.expander("💰 Transaction Details", expanded=True):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            amount = st.number_input("Transaction Amount ($)", min_value=0.01, value=100.0, step=0.01)
+            sender_account = st.text_input("Sender Account", value="1234-5678-9012")
+            sender_balance = st.number_input("Sender Account Balance ($)", min_value=0.0, value=5000.0, step=0.01)
+            
+        with col2:
+            receiver_account = st.text_input("Receiver Account", value="9876-5432-1098")
+            currency = st.selectbox("Currency", ["USD", "EUR", "GBP", "JPY", "CAD"])
+            transaction_type = st.selectbox("Transaction Type", ["Transfer", "Payment", "Withdrawal", "Deposit"])
+    
+    # Timing Information
+    with st.expander("🕐 Timing Information"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            transaction_time = st.time_input("Transaction Time", value=None)
+            day_of_week = st.selectbox("Day of Week", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+            
+        with col2:
+            is_holiday = st.checkbox("Is Holiday")
+            is_business_hours = st.checkbox("During Business Hours", value=True)
+    
+    # Geographic Information
+    with st.expander("🌍 Geographic Information"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            sender_country = st.selectbox("Sender Country", ["USA", "Canada", "UK", "Germany", "France", "Japan", "Australia"])
+            sender_city = st.text_input("Sender City", value="New York")
+            
+        with col2:
+            receiver_country = st.selectbox("Receiver Country", ["USA", "Canada", "UK", "Germany", "France", "Japan", "Australia"])
+            receiver_city = st.text_input("Receiver City", value="Los Angeles")
+    
+    # Device & Channel Information
+    with st.expander("📱 Device & Channel"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            channel = st.selectbox("Transaction Channel", ["Online Banking", "Mobile App", "ATM", "Branch", "Phone"])
+            device_type = st.selectbox("Device Type", ["Desktop", "Mobile", "Tablet", "ATM"])
+            
+        with col2:
+            new_device = st.checkbox("New Device")
+            vpn_detected = st.checkbox("VPN Detected")
+    
+    # Account Information
+    with st.expander("👤 Account Information"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            sender_account_age = st.number_input("Sender Account Age (years)", min_value=0.0, value=2.5, step=0.1)
+            sender_risk_score = st.slider("Sender Historical Risk Score", 0.0, 1.0, 0.1, 0.01)
+            
+        with col2:
+            receiver_account_age = st.number_input("Receiver Account Age (years)", min_value=0.0, value=1.5, step=0.1)
+            receiver_risk_score = st.slider("Receiver Historical Risk Score", 0.0, 1.0, 0.2, 0.01)
+    
+    # Convert to normalized features
+    if st.button("🔄 Convert to Model Features"):
+        features = convert_transaction_to_features(
+            amount, sender_balance, transaction_time, day_of_week, is_holiday, is_business_hours,
+            sender_country, receiver_country, channel, device_type, new_device, vpn_detected,
+            sender_account_age, receiver_account_age, sender_risk_score, receiver_risk_score
+        )
+        return features
+    
+    return None
+
+def convert_transaction_to_features(amount, sender_balance, transaction_time, day_of_week, is_holiday, 
+                                  is_business_hours, sender_country, receiver_country, channel, 
+                                  device_type, new_device, vpn_detected, sender_account_age, 
+                                  receiver_account_age, sender_risk_score, receiver_risk_score):
+    """Convert real transaction details to normalized features"""
+    
+    features = []
+    
+    # Amount features (0-3)
+    features.append(min(amount / 10000, 1.0))  # Normalized amount
+    features.append(min(amount / sender_balance, 1.0))  # Balance ratio
+    features.append(min(amount / 500, 1.0))  # Daily spending ratio (assuming $500 avg)
+    features.append(np.random.random())  # Time since last transaction (random for demo)
+    
+    # Timing features (4-7)
+    hour = transaction_time.hour if transaction_time else 12
+    features.append(hour / 23.0)  # Hour normalized
+    
+    day_mapping = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, 
+                   "Friday": 4, "Saturday": 5, "Sunday": 6}
+    features.append(day_mapping.get(day_of_week, 0) / 6.0)  # Day of week
+    features.append(1.0 if day_of_week in ["Saturday", "Sunday"] else 0.0)  # Weekend
+    features.append(1.0 if is_holiday else 0.0)  # Holiday
+    
+    # Account features (8-9)
+    features.append(min(sender_account_age / 10, 1.0))  # Account age normalized
+    features.append(np.random.random())  # Activity level (random for demo)
+    
+    # Geographic features (10-15)
+    high_risk_countries = ["Somalia", "North Korea", "Iran", "Syria"]
+    sender_risk = 0.8 if sender_country in high_risk_countries else np.random.uniform(0.0, 0.3)
+    receiver_risk = 0.8 if receiver_country in high_risk_countries else np.random.uniform(0.0, 0.3)
+    
+    features.append(sender_risk)  # Sender location risk
+    features.append(receiver_risk)  # Receiver location risk
+    features.append(1.0 if sender_country != receiver_country else 0.0)  # Cross-border
+    features.append(np.random.uniform(0.0, 0.5))  # Distance from home (random for demo)
+    features.append(max(sender_risk, receiver_risk))  # High-risk country
+    features.append(0.8 if sender_country != receiver_country else 0.2)  # Sender-receiver distance
+    
+    # Channel features (16-19)
+    channel_mapping = {"ATM": 1.0, "Online Banking": 0.2, "Mobile App": 0.1, "Branch": 0.0, "Phone": 0.5}
+    device_mapping = {"Desktop": 0.3, "Mobile": 0.1, "Tablet": 0.2, "ATM": 1.0}
+    
+    features.append(channel_mapping.get(channel, 0.5))  # ATM vs Online
+    features.append(device_mapping.get(device_type, 0.5))  # Mobile vs Desktop
+    features.append(1.0 if new_device else 0.0)  # New device
+    features.append(1.0 if vpn_detected else 0.0)  # VPN usage
+    
+    # Behavioral features (20-29)
+    features.append(np.random.uniform(0.0, 0.4))  # Velocity score (random for demo)
+    features.append(1.0 if amount % 100 == 0 and amount >= 1000 else 0.0)  # Round amount
+    features.append(min(receiver_account_age / 10, 1.0))  # Receiver account age
+    features.append(receiver_risk_score)  # Receiver risk score
+    features.append(np.random.uniform(0.0, 0.8))  # Previous relationship (random for demo)
+    features.append(1.0 if is_business_hours else 0.0)  # Business hours
+    features.append(1.0 - abs(amount - 500) / 5000)  # Amount consistency (assuming $500 typical)
+    features.append(np.random.uniform(0.5, 1.0))  # Type consistency (random for demo)
+    features.append(np.random.uniform(0.0, 0.3))  # Failed attempts (random for demo)
+    features.append(np.random.uniform(0.0, 0.2))  # Multiple recipients (random for demo)
+    
+    return features
 
 def create_score_gauge(score, title):
     """Create a gauge chart for risk scores"""
@@ -156,7 +348,44 @@ def create_bank_comparison_chart(individual_scores):
     
     return fig
 
-def create_consensus_visualization(result):
+def create_feature_importance_chart(transaction_features):
+    """Create a chart showing feature values and their risk levels"""
+    if not transaction_features:
+        return None
+    
+    feature_data = []
+    for i, value in enumerate(transaction_features):
+        field_info = get_feature_info(i)
+        feature_data.append({
+            'Feature': field_info['name'][:25] + "..." if len(field_info['name']) > 25 else field_info['name'],
+            'Value': value,
+            'Category': field_info['category'],
+            'Risk Level': 'High' if value > 0.7 else 'Medium' if value > 0.3 else 'Low'
+        })
+    
+    df = pd.DataFrame(feature_data)
+    
+    # Create color mapping
+    color_map = {'Low': '#4CAF50', 'Medium': '#FF9800', 'High': '#F44336'}
+    
+    fig = px.bar(
+        df, 
+        x='Value', 
+        y='Feature',
+        color='Risk Level',
+        color_discrete_map=color_map,
+        orientation='h',
+        title="Transaction Feature Analysis",
+        labels={'Value': 'Normalized Feature Value', 'Feature': 'Transaction Features'}
+    )
+    
+    fig.update_layout(
+        height=600,
+        yaxis={'categoryorder': 'total ascending'},
+        showlegend=True
+    )
+    
+    return fig
     """Create a comprehensive visualization of consortium results"""
     # Create subplots
     fig = make_subplots(
@@ -268,41 +497,69 @@ def main():
         # Input method selection
         input_method = st.radio(
             "Choose input method:",
-            ["Manual Input", "Sample Transactions", "Random Generation"]
+            ["Real Transaction Details", "Sample Transactions", "Advanced Features", "Random Generation"]
         )
         
         transaction_features = None
         
-        if input_method == "Manual Input":
-            st.markdown("### Enter Transaction Features (30 features)")
+        if input_method == "Real Transaction Details":
+            transaction_features = create_transaction_form()
             
-            # Create a more user-friendly input interface
-            with st.expander("💰 Transaction Amount & Basic Info", expanded=True):
+        elif input_method == "Advanced Features":
+            st.markdown("### Enter Transaction Features (30 features)")
+            st.info("💡 **Feature Mapping Guide**: Hover over feature names to see what they represent")
+            
+            # Create a more user-friendly input interface with real field mappings
+            with st.expander("💰 Transaction Amount & Timing (Features 0-9)", expanded=True):
                 col_a, col_b = st.columns(2)
                 with col_a:
                     features_0_4 = []
                     for i in range(5):
-                        val = st.number_input(f"Feature {i}", value=0.5, min_value=0.0, max_value=1.0, step=0.01, key=f"feat_{i}")
+                        field_info = get_feature_info(i)
+                        val = st.number_input(
+                            f"{field_info['name']}", 
+                            value=0.5, min_value=0.0, max_value=1.0, step=0.01, 
+                            key=f"feat_{i}",
+                            help=field_info['description']
+                        )
                         features_0_4.append(val)
                 
                 with col_b:
                     features_5_9 = []
                     for i in range(5, 10):
-                        val = st.number_input(f"Feature {i}", value=0.5, min_value=0.0, max_value=1.0, step=0.01, key=f"feat_{i}")
+                        field_info = get_feature_info(i)
+                        val = st.number_input(
+                            f"{field_info['name']}", 
+                            value=0.5, min_value=0.0, max_value=1.0, step=0.01, 
+                            key=f"feat_{i}",
+                            help=field_info['description']
+                        )
                         features_5_9.append(val)
             
-            with st.expander("📍 Location & Behavioral Features"):
+            with st.expander("🌍 Geographic & Channel Features (Features 10-19)"):
                 col_c, col_d = st.columns(2)
                 with col_c:
                     features_10_19 = []
                     for i in range(10, 20):
-                        val = st.number_input(f"Feature {i}", value=0.5, min_value=0.0, max_value=1.0, step=0.01, key=f"feat_{i}")
+                        field_info = get_feature_info(i)
+                        val = st.number_input(
+                            f"{field_info['name']}", 
+                            value=0.5, min_value=0.0, max_value=1.0, step=0.01, 
+                            key=f"feat_{i}",
+                            help=field_info['description']
+                        )
                         features_10_19.append(val)
                 
                 with col_d:
                     features_20_29 = []
                     for i in range(20, 30):
-                        val = st.number_input(f"Feature {i}", value=0.5, min_value=0.0, max_value=1.0, step=0.01, key=f"feat_{i}")
+                        field_info = get_feature_info(i)
+                        val = st.number_input(
+                            f"{field_info['name']}", 
+                            value=0.5, min_value=0.0, max_value=1.0, step=0.01, 
+                            key=f"feat_{i}",
+                            help=field_info['description']
+                        )
                         features_20_29.append(val)
             
             transaction_features = features_0_4 + features_5_9 + features_10_19 + features_20_29
@@ -405,8 +662,61 @@ def main():
                     use_container_width=True
                 )
                 
+                # Feature importance visualization
+                st.markdown("### 📊 Transaction Feature Analysis")
+                feature_chart = create_feature_importance_chart(transaction_features)
+                if feature_chart:
+                    st.plotly_chart(feature_chart, use_container_width=True)
+                
+                # Feature explanation for the transaction
+                st.markdown("### 🔍 Risk Factor Breakdown")
+                if transaction_features:
+                    # Group features by category for better understanding
+                    categories = {}
+                    for i, feature_val in enumerate(transaction_features):
+                        field_info = get_feature_info(i)
+                        category = field_info['category']
+                        if category not in categories:
+                            categories[category] = []
+                        categories[category].append({
+                            'name': field_info['name'],
+                            'value': feature_val,
+                            'description': field_info['description'],
+                            'risk_level': 'High' if feature_val > 0.7 else 'Medium' if feature_val > 0.3 else 'Low'
+                        })
+                    
+                    # Display categorized features with summary stats
+                    col_cat1, col_cat2 = st.columns(2)
+                    
+                    categories_list = list(categories.items())
+                    mid_point = len(categories_list) // 2
+                    
+                    with col_cat1:
+                        for category, features in categories_list[:mid_point]:
+                            with st.expander(f"📊 {category} Features ({len(features)} features)"):
+                                high_risk_count = sum(1 for f in features if f['risk_level'] == 'High')
+                                if high_risk_count > 0:
+                                    st.warning(f"⚠️ {high_risk_count} high-risk factors detected")
+                                
+                                for feature in features:
+                                    risk_color = "🔴" if feature['risk_level'] == 'High' else "🟡" if feature['risk_level'] == 'Medium' else "🟢"
+                                    st.write(f"{risk_color} **{feature['name']}**: {feature['value']:.3f}")
+                                    st.caption(f"{feature['description']} (Risk: {feature['risk_level']})")
+                    
+                    with col_cat2:
+                        for category, features in categories_list[mid_point:]:
+                            with st.expander(f"📊 {category} Features ({len(features)} features)"):
+                                high_risk_count = sum(1 for f in features if f['risk_level'] == 'High')
+                                if high_risk_count > 0:
+                                    st.warning(f"⚠️ {high_risk_count} high-risk factors detected")
+                                
+                                for feature in features:
+                                    risk_color = "🔴" if feature['risk_level'] == 'High' else "🟡" if feature['risk_level'] == 'Medium' else "🟢"
+                                    st.write(f"{risk_color} **{feature['name']}**: {feature['value']:.3f}")
+                                    st.caption(f"{feature['description']} (Risk: {feature['risk_level']})")
+                
                 # Detailed results
-                with st.expander("📋 Detailed Results", expanded=False):
+                with st.expander("📋 Detailed Technical Results", expanded=False):
                     st.json(result)
                 
                 # Flagging banks info
