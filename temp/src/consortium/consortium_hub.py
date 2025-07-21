@@ -34,6 +34,7 @@ class InferenceSession:
     session_id: str
     use_case: str
     features: List[float]
+    raw_data: Dict[str, Any]  # Store original data for fraud pattern analysis
     created_at: datetime
     deadline: datetime
     responses: Dict[str, Any]
@@ -196,6 +197,7 @@ class ConsortiumHub:
                     session_id=session_id,
                     use_case=use_case,
                     features=features,
+                    raw_data=data,  # Store original data for fraud pattern analysis
                     created_at=datetime.now(),
                     deadline=datetime.now() + timedelta(seconds=self.inference_timeout),
                     responses={}
@@ -323,6 +325,66 @@ class ConsortiumHub:
                 logger.error(f"Poll inference error: {e}")
                 return jsonify({"error": str(e)}), 500
     
+    def _apply_fraud_pattern_boost(self, consensus_score: float, session) -> float:
+        """Apply fraud pattern boost based on obvious fraud indicators"""
+        try:
+            # Get original email content for analysis
+            email_content = session.raw_data.get('email_content', '').lower()
+            transaction_data = session.raw_data.get('transaction_data', {})
+            amount = transaction_data.get('amount', 0)
+            
+            boost_factor = 0.0
+            fraud_indicators = []
+            
+            # High-value transaction boost
+            if amount > 100000:
+                boost_factor += 0.15
+                fraud_indicators.append(f"Large amount: ${amount:,.2f}")
+            
+            # CEO/Executive impersonation
+            if any(phrase in email_content for phrase in ['ceo', 'president', 'executive', 'urgent', 'confidential']):
+                boost_factor += 0.20
+                fraud_indicators.append("Authority impersonation detected")
+            
+            # Crypto/investment scam patterns
+            if any(phrase in email_content for phrase in ['crypto', 'investment', 'return', 'guarantee', 'opportunity']):
+                boost_factor += 0.25
+                fraud_indicators.append("Investment scam pattern")
+            
+            # Romance/dating scam patterns  
+            if any(phrase in email_content for phrase in ['love', 'relationship', 'meet', 'dating', 'emergency']):
+                boost_factor += 0.20
+                fraud_indicators.append("Romance scam pattern")
+            
+            # Business email compromise patterns
+            if any(phrase in email_content for phrase in ['wire transfer', 'vendor', 'payment', 'invoice', 'urgent']):
+                if amount > 50000:
+                    boost_factor += 0.18
+                    fraud_indicators.append("BEC pattern with large amount")
+            
+            # Multiple urgency/pressure indicators
+            urgency_count = sum(1 for phrase in ['urgent', 'immediate', 'asap', 'quickly', 'deadline'] if phrase in email_content)
+            if urgency_count >= 2:
+                boost_factor += 0.15
+                fraud_indicators.append("Multiple urgency indicators")
+            
+            # Apply boost but cap at reasonable levels
+            boosted_score = min(consensus_score + boost_factor, 0.95)
+            
+            if boost_factor > 0:
+                logger.info(f"   🚨 FRAUD PATTERN BOOST APPLIED:")
+                logger.info(f"      Original consensus: {consensus_score:.3f}")
+                logger.info(f"      Boost factor: +{boost_factor:.3f}")
+                logger.info(f"      Final score: {boosted_score:.3f}")
+                for indicator in fraud_indicators:
+                    logger.info(f"      📍 {indicator}")
+            
+            return boosted_score
+            
+        except Exception as e:
+            logger.error(f"Error applying fraud pattern boost: {e}")
+            return consensus_score
+    
     def _distribute_inference(self, session_id: str):
         """Distribute inference request to all participants via polling queue"""
         try:
@@ -431,7 +493,9 @@ class ConsortiumHub:
             # Consensus scoring
             consensus_score = sum(scores) / len(scores)
             variance = sum((s - consensus_score) ** 2 for s in scores) / len(scores)
-            final_score = consensus_score  # Can implement weighted scoring
+            
+            # Apply fraud pattern boost for obvious fraud indicators
+            final_score = self._apply_fraud_pattern_boost(consensus_score, session)
             
             logger.info(f"   📈 Consensus Score: {consensus_score:.3f}")
             logger.info(f"   📊 Variance: {variance:.3f}")
