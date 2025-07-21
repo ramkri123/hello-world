@@ -104,25 +104,25 @@ class ParticipantNode:
             start_time = time.time()
             
             if self.model is None:
-                logger.info(f"   🎯 Using simulated scoring (no model loaded)")
-                # Fallback to simulated scoring based on specialty
-                score = self._simulate_scoring(features)
+                logger.error(f"   ❌ No model loaded - cannot process inference")
+                raise ValueError(f"Model not loaded for {self.config.node_id}")
+            
+            logger.info(f"   🤖 Using trained model: {type(self.model).__name__}")
+            # Use actual model only
+            features_array = np.array([features])
+            # Get probability of fraud (class 1)
+            if hasattr(self.model, 'predict_proba'):
+                probabilities = self.model.predict_proba(features_array)
+                score = float(probabilities[0][1]) if len(probabilities[0]) > 1 else float(probabilities[0][0])
+                logger.info(f"   📊 Model probabilities: {probabilities[0]}")
             else:
-                logger.info(f"   🤖 Using trained model: {type(self.model).__name__}")
-                # Use actual model
-                features_array = np.array([features])
-                # Get probability of fraud (class 1)
-                if hasattr(self.model, 'predict_proba'):
-                    probabilities = self.model.predict_proba(features_array)
-                    score = float(probabilities[0][1]) if len(probabilities[0]) > 1 else float(probabilities[0][0])
-                    logger.info(f"   📊 Model probabilities: {probabilities[0]}")
-                else:
-                    score = float(self.model.predict(features_array)[0])
+                score = float(self.model.predict(features_array)[0])
             
             # Ensure score is between 0 and 1
             score = max(0.0, min(1.0, score))
             
-            confidence = 0.95 if self.model else 0.75  # Lower confidence for simulated
+            # Calculate confidence based on model certainty
+            confidence = 0.95  # High confidence for real model predictions
             
             logger.info(f"🎯 Processed inference: score={score:.3f}, confidence={confidence:.2f}")
             
@@ -140,77 +140,7 @@ class ParticipantNode:
                 "confidence": 0.1,
                 "error": str(e)
             }
-    
-    def _simulate_scoring(self, features: List[float]) -> float:
-        """Simulate model scoring based on specialty with privacy-preserving NLP features"""
-        try:
-            # Privacy-preserving feature ranges for specialized banks
-            if "wire_transfer" in self.config.specialty.lower() or "sender_transaction" in self.config.specialty.lower():
-                # Bank A: Sender/Transaction Specialist (Features 0-14)
-                # Focus on transaction patterns, amounts, timing
-                specialist_features = features[:15]
-                
-                # Enhanced analysis for wire transfer patterns
-                transaction_risk = specialist_features[0] if len(specialist_features) > 0 else 0  # Amount risk
-                timing_risk = specialist_features[4] if len(specialist_features) > 4 else 0      # Friday afternoon
-                authority_risk = specialist_features[5] if len(specialist_features) > 5 else 0   # Authority claims
-                
-                score = (transaction_risk * 0.4 + timing_risk * 0.3 + authority_risk * 0.3)
-                
-                logger.info(f"   🏦 [BANK A] Wire Transfer Analysis:")
-                logger.info(f"      💰 Transaction Risk: {transaction_risk:.3f}")
-                logger.info(f"      ⏰ Timing Risk: {timing_risk:.3f}")
-                logger.info(f"      👑 Authority Risk: {authority_risk:.3f}")
-                
-            elif "identity" in self.config.specialty.lower() or "receiver" in self.config.specialty.lower():
-                # Bank B: Identity/Receiver Specialist (Features 15-29)
-                # Focus on account verification, identity patterns
-                specialist_features = features[15:30] if len(features) > 15 else features
-                
-                # Enhanced analysis for identity verification
-                account_age_risk = specialist_features[0] if len(specialist_features) > 0 else 0  # New account
-                identity_risk = specialist_features[5] if len(specialist_features) > 5 else 0      # Identity patterns
-                verification_risk = specialist_features[10] if len(specialist_features) > 10 else 0 # Verification issues
-                
-                score = (account_age_risk * 0.5 + identity_risk * 0.3 + verification_risk * 0.2)
-                
-                logger.info(f"   🔍 [BANK B] Identity Verification Analysis:")
-                logger.info(f"      🆔 Account Age Risk: {account_age_risk:.3f}")
-                logger.info(f"      👤 Identity Risk: {identity_risk:.3f}")
-                logger.info(f"      ✅ Verification Risk: {verification_risk:.3f}")
-                
-            elif "network" in self.config.specialty.lower() or "account_specialist" in self.config.specialty.lower():
-                # Bank C: Network/Account Pattern Specialist (Features 30+)
-                # Focus on behavioral patterns, network analysis
-                specialist_features = features[30:] if len(features) > 30 else features[-5:]
-                
-                # Enhanced analysis for network patterns
-                behavior_risk = sum(specialist_features[:3]) / 3 if len(specialist_features) >= 3 else 0  # Behavioral patterns
-                network_risk = sum(specialist_features[3:]) / max(1, len(specialist_features[3:])) if len(specialist_features) > 3 else 0  # Network patterns
-                manipulation_risk = features[7] if len(features) > 7 else 0  # Social engineering
-                
-                score = (behavior_risk * 0.4 + network_risk * 0.4 + manipulation_risk * 0.2)
-                
-                logger.info(f"   🌐 [BANK C] Network Pattern Analysis:")
-                logger.info(f"      🎭 Behavior Risk: {behavior_risk:.3f}")
-                logger.info(f"      🕸️ Network Risk: {network_risk:.3f}")
-                logger.info(f"      🎪 Manipulation Risk: {manipulation_risk:.3f}")
-                
-            else:
-                # General scoring for unknown specialties
-                score = sum(features) / len(features)
-                logger.info(f"   ⚡ General scoring: {score:.3f}")
-            
-            # Add realistic randomness but keep within bounds
-            noise = np.random.normal(0, 0.05)  # Reduced noise for more consistent results
-            score = max(0.0, min(1.0, score + noise))
-            
-            return score
-            
-        except Exception as e:
-            logger.error(f"Simulation error: {e}")
-            return 0.5
-    
+
     def submit_score(self, session_id: str, inference_result: Dict[str, Any]) -> bool:
         """Submit inference score to consortium hub"""
         try:
@@ -239,44 +169,54 @@ class ParticipantNode:
             return False
     
     def start_polling(self):
-        """Start polling for inference requests (simulation)"""
+        """Start polling for inference requests from consortium"""
         self.is_running = True
         
         def poll_loop():
             while self.is_running:
                 try:
-                    # In a real implementation, this would be a webhook or long-polling
-                    # For now, we'll just check consortium health
-                    response = requests.get(f"{self.config.consortium_url}/health", timeout=5)
-                    if response.status_code == 200:
-                        health = response.json()
-                        logger.debug(f"🔄 {self.config.node_id} health check: {health['participants']} participants, {health['active_sessions']} active sessions")
+                    # Poll for pending inference requests
+                    response = requests.get(
+                        f"{self.config.consortium_url}/poll_inference", 
+                        params={'participant_id': self.config.node_id},
+                        timeout=5
+                    )
                     
-                    time.sleep(10)  # Poll every 10 seconds
+                    if response.status_code == 200:
+                        # Received inference request
+                        inference_data = response.json()
+                        session_id = inference_data['session_id']
+                        features = inference_data['features']
+                        
+                        logger.info(f"📨 {self.config.node_id} received inference request for session {session_id}")
+                        logger.info(f"   📊 Processing {len(features)} features")
+                        
+                        # Process the inference with real model
+                        result = self.process_inference(features)
+                        
+                        # Submit the score back to consortium
+                        success = self.submit_score(session_id, result)
+                        
+                        if success:
+                            logger.info(f"✅ {self.config.node_id} completed inference for session {session_id}")
+                        else:
+                            logger.error(f"❌ {self.config.node_id} failed to submit score for session {session_id}")
+                            
+                    elif response.status_code == 204:
+                        # No pending inference - this is normal
+                        logger.debug(f"🔄 {self.config.node_id} - no pending inference")
+                        
+                    else:
+                        logger.debug(f"Poll response: {response.status_code}")
+                    
+                    time.sleep(5)  # Poll every 5 seconds for real work
                     
                 except Exception as e:
                     logger.debug(f"Polling error: {e}")
-                    time.sleep(30)  # Back off on error
+                    time.sleep(15)  # Back off on error
         
         threading.Thread(target=poll_loop, daemon=True).start()
         logger.info(f"🔄 Started polling for {self.config.node_id}")
-    
-    def simulate_inference_response(self, session_id: str, features: List[float]):
-        """Simulate receiving and responding to an inference request"""
-        try:
-            # Process the inference
-            result = self.process_inference(features)
-            
-            # Submit the score
-            success = self.submit_score(session_id, result)
-            
-            if success:
-                logger.info(f"✅ {self.config.node_id} completed inference for session {session_id}")
-            else:
-                logger.error(f"❌ {self.config.node_id} failed to submit score for session {session_id}")
-                
-        except Exception as e:
-            logger.error(f"❌ Simulation error: {e}")
     
     def stop(self):
         """Stop the participant node"""

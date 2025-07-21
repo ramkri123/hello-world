@@ -49,6 +49,7 @@ class ConsortiumHub:
         self.participants: Dict[str, ParticipantInfo] = {}
         self.active_sessions: Dict[str, InferenceSession] = {}
         self.session_results: Dict[str, Dict] = {}
+        self.pending_inferences: Dict[str, Dict] = {}  # Queue for bank polling
         
         # Configuration
         self.inference_timeout = 30  # seconds
@@ -283,148 +284,125 @@ class ConsortiumHub:
             except Exception as e:
                 logger.error(f"Results retrieval error: {e}")
                 return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/poll_inference', methods=['GET'])
+        def poll_inference():
+            """Endpoint for banks to poll for pending inference requests"""
+            try:
+                participant_id = request.args.get('participant_id')
+                if not participant_id:
+                    return jsonify({"error": "participant_id required"}), 400
+                
+                # Check if participant is registered
+                if participant_id not in self.participants:
+                    return jsonify({"error": "Participant not registered"}), 401
+                
+                # Find pending inference for this participant
+                for session_id, inference_data in list(self.pending_inferences.items()):
+                    if participant_id in inference_data.get('pending_participants', []):
+                        # Remove this participant from pending list
+                        inference_data['pending_participants'].remove(participant_id)
+                        
+                        # If no more pending participants, remove from queue
+                        if not inference_data['pending_participants']:
+                            del self.pending_inferences[session_id]
+                        
+                        logger.info(f"📤 Sending inference request to {participant_id} for session {session_id}")
+                        
+                        return jsonify({
+                            "session_id": session_id,
+                            "features": inference_data['features'],
+                            "use_case": inference_data['use_case'],
+                            "deadline": inference_data['deadline']
+                        })
+                
+                # No pending inference for this participant
+                return jsonify({"message": "No pending inference"}), 204
+                
+            except Exception as e:
+                logger.error(f"Poll inference error: {e}")
+                return jsonify({"error": str(e)}), 500
     
     def _distribute_inference(self, session_id: str):
-        """Distribute inference request to all participants"""
+        """Distribute inference request to all participants via polling queue"""
         try:
+            if session_id not in self.active_sessions:
+                logger.error(f"Session {session_id} not found")
+                return
+                
             session = self.active_sessions[session_id]
             session.status = "collecting"
             
             logger.info(f"📤 DISTRIBUTING INFERENCE SESSION: {session_id}")
             logger.info(f"   🏦 Participants: {len(self.participants)}")
+            logger.info(f"   📊 Features: {len(session.features)} anonymous features")
             
-            # Simulate immediate responses from all participants
-            import random
-            import time as time_module
+            # Create pending inference request for bank polling
+            active_participants = [p.node_id for p in self.participants.values() if p.status == "active"]
             
-            # Simulate bank-specific responses based on the features
-            features = session.features
+            self.pending_inferences[session_id] = {
+                'session_id': session_id,
+                'features': session.features,
+                'use_case': session.use_case,
+                'deadline': session.deadline.isoformat(),
+                'pending_participants': active_participants.copy(),
+                'created_at': datetime.now().isoformat()
+            }
             
-            # Check if this looks like BEC fraud based on the actual demo data pattern
-            # BEC demo: [0.35, 0.45, 0.75, 0.40, 0.85, 0.35, 0.40, 0.70, 0.80, 0.90, ...]
-            is_bec_fraud = (
-                len(features) >= 20 and
-                features[2] == 0.75 and features[4] == 0.85 and 
-                features[8] == 0.80 and features[9] == 0.90 and
-                features[16] == 0.85 and features[17] == 0.90
-            )
+            logger.info(f"   📋 Queued inference for participants: {active_participants}")
+            logger.info(f"   ⏰ Banks have {self.inference_timeout} seconds to respond")
             
-            logger.info(f"🔍 FRAUD ANALYSIS:")
-            logger.info(f"   📊 Feature Pattern Analysis:")
-            logger.info(f"      Authority Score: {features[10]:.3f}" if len(features) > 10 else "      Authority Score: N/A")
-            logger.info(f"      Urgency Score: {features[13]:.3f}" if len(features) > 13 else "      Urgency Score: N/A")
-            logger.info(f"      Timing Risk: {features[8]:.3f}" if len(features) > 8 else "      Timing Risk: N/A")
-            logger.info(f"      New Account Flag: {features[31]:.3f}" if len(features) > 31 else "      New Account Flag: N/A")
-            
-            # Determine if this is BEC fraud based on new behavioral features
-            is_bec_fraud = False
-            if len(features) > 31:
-                authority_score = features[10] if len(features) > 10 else 0
-                urgency_score = features[13] if len(features) > 13 else 0
-                timing_risk = features[8] if len(features) > 8 else 0
-                new_account = features[31] if len(features) > 31 else 0
-                
-                is_bec_fraud = (authority_score > 0.7 and urgency_score > 0.7 and 
-                               timing_risk > 0.5 and new_account > 0.8)
-            else:
-                # Fallback to legacy pattern detection
-                is_bec_fraud = (
-                    len(features) >= 20 and
-                    features[2] == 0.75 and features[4] == 0.85 and 
-                    features[8] == 0.80 and features[9] == 0.90 and
-                    features[16] == 0.85 and features[17] == 0.90
-                )
-            
-            logger.info(f"   🚨 BEC Fraud Pattern: {'DETECTED' if is_bec_fraud else 'Not detected'}")
-            if is_bec_fraud:
-                logger.info(f"   ⚠️  ALERT: Business Email Compromise behavioral signature identified!")
-            
-            for participant_id, participant in self.participants.items():
-                logger.info(f"   🏦 Processing at {participant_id} ({participant.specialty})...")
-                
-                # Simulate processing delay
-                processing_time = random.uniform(0.5, 1.0)
-                time_module.sleep(processing_time)
-                
-                # Generate bank-specific risk scores based on specialty and anonymous features
-                if "A" in participant_id:  # Bank A - Sender/Wire Transfer Specialist (Features 0-14)
-                    if is_bec_fraud:
-                        # Bank A focuses on sender features but misses behavioral indicators
-                        base_score = 0.08 + random.uniform(-0.02, 0.02)  
-                        reasoning = "Normal wire transfer from established customer account"
-                    else:
-                        # Analyze sender account and transaction patterns
-                        sender_features = features[0:15] if len(features) > 14 else features[0:min(len(features), 15)]
-                        sender_risk = sum(sender_features) / len(sender_features) if sender_features else 0.1
-                        base_score = min(sender_risk + random.uniform(-0.05, 0.05), 1.0)
-                        reasoning = "Sender account and transaction pattern analysis"
-                        
-                elif "B" in participant_id:  # Bank B - Identity/Receiver Specialist (Features 15-29)
-                    if is_bec_fraud:
-                        # Bank B catches identity/receiver account issues
-                        base_score = 0.78 + random.uniform(-0.05, 0.05)  
-                        reasoning = "ALERT: New receiver account with identity verification issues"
-                    else:
-                        # Analyze receiver identity and account features
-                        if len(features) > 29:
-                            receiver_features = features[15:30]
-                            receiver_risk = sum(receiver_features) / len(receiver_features)
-                            base_score = min(receiver_risk + random.uniform(-0.05, 0.05), 1.0)
-                        else:
-                            base_score = 0.20 + random.uniform(-0.05, 0.05)
-                        reasoning = "Receiver identity and account verification analysis"
-                        
-                else:  # Bank C - Network Pattern Analyst (Features 30+)
-                    if is_bec_fraud:
-                        # Bank C detects network-wide behavioral patterns
-                        base_score = 0.68 + random.uniform(-0.05, 0.05)  
-                        reasoning = "ALERT: Cross-bank behavioral fraud pattern detected"
-                    else:
-                        # Analyze network and behavioral patterns
-                        if len(features) > 30:
-                            network_features = features[30:] if len(features) > 30 else [0.15]
-                            if network_features:
-                                network_risk = sum(network_features) / len(network_features)
-                                base_score = min(network_risk + random.uniform(-0.05, 0.05), 1.0)
-                            else:
-                                base_score = 0.15 + random.uniform(-0.05, 0.05)
-                        else:
-                            base_score = 0.15 + random.uniform(-0.05, 0.05)
-                        reasoning = "Network behavioral pattern analysis"
-                
-                # Submit simulated score
-                self._receive_score_internal(session_id, participant_id, base_score, 0.85)
-                
-                status = "🚨 HIGH RISK" if base_score > 0.5 else "✅ LOW RISK"
-                logger.info(f"   📊 {participant_id} Result: {base_score:.3f} ({status})")
-                logger.info(f"   💭 {participant_id} Analysis: {reasoning}")
-                logger.info(f"   ⏱️  {participant_id} Processing time: {processing_time:.2f}s")
-            
-            logger.info(f"🔄 AGGREGATING RESULTS for session {session_id}...")
-            
-            # Complete the inference
-            self._complete_inference(session_id, timeout=False)
+            # Start timeout monitoring
+            threading.Thread(
+                target=self._monitor_inference_timeout,
+                args=(session_id,),
+                daemon=True
+            ).start()
                 
         except Exception as e:
             logger.error(f"Distribution error: {e}")
     
-    def _receive_score_internal(self, session_id: str, participant_id: str, risk_score: float, confidence: float):
-        """Internal method to simulate receiving scores from participants"""
+    def _monitor_inference_timeout(self, session_id: str):
+        """Monitor inference session for timeout"""
         try:
-            if session_id not in self.active_sessions:
-                return
+            import time
+            
+            # Wait for the timeout period
+            time.sleep(self.inference_timeout)
+            
+            # Check if session is still active
+            if session_id in self.active_sessions:
+                session = self.active_sessions[session_id]
+                expected_responses = len([p for p in self.participants.values() if p.status == "active"])
+                actual_responses = len(session.responses)
                 
-            session = self.active_sessions[session_id]
+                logger.warning(f"⏰ TIMEOUT for session {session_id}")
+                logger.info(f"   📊 Responses: {actual_responses}/{expected_responses}")
+                
+                if actual_responses > 0:
+                    # Complete with partial responses
+                    logger.info(f"   ✅ Completing with partial responses")
+                    self._complete_inference(session_id, timeout=True)
+                else:
+                    # No responses received
+                    logger.error(f"   ❌ No responses received - marking as failed")
+                    if session_id in self.active_sessions:
+                        del self.active_sessions[session_id]
+                        
+                    # Store failed result
+                    self.session_results[session_id] = {
+                        "session_id": session_id,
+                        "status": "failed",
+                        "error": "No bank responses received within timeout",
+                        "completion_time": datetime.now().isoformat()
+                    }
             
-            session.responses[participant_id] = {
-                'risk_score': risk_score,
-                'confidence': confidence,
-                'timestamp': datetime.now(),
-                'details': f"Processed by {participant_id}"
-            }
-            
+            # Clean up pending inference
+            if session_id in self.pending_inferences:
+                del self.pending_inferences[session_id]
+                
         except Exception as e:
-            logger.error(f"Internal score reception error: {e}")
+            logger.error(f"Timeout monitoring error: {e}")
     
     def _complete_inference(self, session_id: str, timeout: bool = False):
         """Complete inference session and calculate results"""

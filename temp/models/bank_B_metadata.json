@@ -2,11 +2,15 @@
   "bank_id": "bank_B",
   "specialty": "identity_receiver_specialist",
   "feature_range": [
-    15,
-    30
+    0,
+    35
   ],
-  "accuracy": 1.0,
-  "model_type": "privacy_preserving_random_forest",
-  "training_date": "2025-07-20T19:32:52.269712",
-  "feature_count": 15
+  "test_accuracy": 0.9969954105721927,
+  "train_accuracy": 0.997933972009566,
+  "cv_score": 0.9976650983419146,
+  "auc_score": 0.9998433651993512,
+  "oob_score": 0.9971132211640511,
+  "model_type": "realistic_privacy_preserving_random_forest",
+  "training_date": "2025-07-21T08:46:59.077845",
+  "feature_count": 35
 }

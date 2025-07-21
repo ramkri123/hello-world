@@ -2,11 +2,15 @@
   "bank_id": "bank_C",
   "specialty": "network_account_specialist",
   "feature_range": [
-    30,
+    0,
     35
   ],
-  "accuracy": 1.0,
-  "model_type": "privacy_preserving_random_forest",
-  "training_date": "2025-07-20T19:32:52.271425",
-  "feature_count": 5
+  "test_accuracy": 0.9980816934016867,
+  "train_accuracy": 0.998809304435341,
+  "cv_score": 0.9982281255702853,
+  "auc_score": 0.9995531480106035,
+  "oob_score": 0.9978595829730534,
+  "model_type": "realistic_privacy_preserving_random_forest",
+  "training_date": "2025-07-21T08:46:59.080204",
+  "feature_count": 35
 }

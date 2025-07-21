@@ -13,6 +13,12 @@ import json
 import os
 from typing import Dict, List, Any
 import time
+import sys
+import os
+
+# Add the project root and demos folder to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'demos'))
 
 # Import the consortium classes
 from consortium_comparison_score_prototype import BankSimulator, ConsortiumComparisonService
@@ -84,9 +90,14 @@ def load_consortium_models():
     banks = {}
     bank_ids = ['bank_A', 'bank_B', 'bank_C']
     
+    # Get the project root directory (3 levels up from src/ui/)
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    
     for bank_id in bank_ids:
         try:
-            bank = BankSimulator(bank_id, f'{bank_id}_data.csv')
+            # Use correct paths for data files and models
+            data_file = os.path.join(project_root, 'data', f'{bank_id}_data.csv')
+            bank = BankSimulator(bank_id, data_file)
             if bank.load_model():
                 banks[bank_id] = bank
             else:

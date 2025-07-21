@@ -1,7 +1,7 @@
 {
   "bank_id": "test_bank",
   "model_type": "random_forest",
-  "model_confidence": 0.8925,
+  "model_confidence": 0.89,
   "model_class": "RandomForestClassifier",
-  "timestamp": "2025-07-20T14:13:48.805481"
+  "timestamp": "2025-07-21T10:13:34.603754"
 }

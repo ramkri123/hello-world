@@ -1,12 +1,16 @@
 {
   "bank_id": "bank_A",
-  "specialty": "sender_transaction_specialist",
+  "specialty": "wire_transfer_specialist",
   "feature_range": [
     0,
-    15
+    35
   ],
-  "accuracy": 1.0,
-  "model_type": "privacy_preserving_random_forest",
-  "training_date": "2025-07-20T19:32:52.267760",
-  "feature_count": 15
+  "test_accuracy": 0.9966298817154563,
+  "train_accuracy": 0.9974086661002549,
+  "cv_score": 0.9976918719909375,
+  "auc_score": 0.9998630117921521,
+  "oob_score": 0.9962616822429906,
+  "model_type": "realistic_privacy_preserving_random_forest",
+  "training_date": "2025-07-21T08:46:59.075275",
+  "feature_count": 35
 }

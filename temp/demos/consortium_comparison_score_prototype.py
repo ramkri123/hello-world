@@ -14,6 +14,9 @@ import json
 import pickle
 import os
 
+# Get project root directory (parent of demos folder)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # Optional: Import XGBoost (uncomment if installed)
 # import xgboost as xgb
 
@@ -665,7 +668,8 @@ def train_consortium_models(bank_data: Dict[str, pd.DataFrame], model_types: Lis
     
     for i, bank_id in enumerate(['bank_A', 'bank_B', 'bank_C']):
         model_type = model_types[i]
-        bank = BankSimulator(bank_id, f'{bank_id}_data.csv')
+        data_path = os.path.join(project_root, 'data', f'{bank_id}_data.csv')
+        bank = BankSimulator(bank_id, data_path)
         
         # Check if model already exists
         if bank.model_exists() and not force_retrain:
@@ -724,7 +728,7 @@ def main():
     
     # Save data to files
     for bank_id, data in bank_data.items():
-        data.to_csv(f'{bank_id}_data.csv', index=False)
+        data.to_csv(os.path.join(project_root, 'data', f'{bank_id}_data.csv'), index=False)
     
     # Initialize banks with same models but diverse data
     print("\n2. Initializing bank simulators with model persistence...")

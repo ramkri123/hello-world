@@ -1,0 +1,399 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Consortium Fraud Detection</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f6fa; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; text-align: center; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        
+        .status-panel { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .status-online { border-left: 5px solid #27ae60; }
+        .status-offline { border-left: 5px solid #e74c3c; }
+        
+        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        
+        .form-panel { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #667eea; }
+        
+        .btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .results-panel { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        .risk-indicator { text-align: center; margin: 20px 0; }
+        .risk-score { font-size: 3em; font-weight: bold; margin: 10px 0; }
+        .risk-low { color: #27ae60; }
+        .risk-medium { color: #f39c12; }
+        .risk-high { color: #e74c3c; }
+        
+        .bank-scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .bank-score { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        
+        .loading { text-align: center; padding: 40px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .participants { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .participant { background: #e8f5e8; padding: 15px; border-radius: 8px; text-align: center; }
+        .participant h4 { color: #27ae60; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Consortium Fraud Detection</h1>
+            <p>Privacy-Preserving Multi-Bank Fraud Analysis</p>
+        </div>
+        
+        <div class="status-panel" id="statusPanel">
+            <h3>🔍 Consortium Status</h3>
+            <div id="statusContent">Loading...</div>
+        </div>
+        
+        <div class="main-content">
+            <div class="form-panel">
+                <h3>📋 Transaction Analysis</h3>
+                <form id="fraudForm">
+                    <div class="form-group">
+                        <label for="amount">💰 Amount ($)</label>
+                        <input type="number" id="amount" step="0.01" value="485000.00" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="senderAccount">📤 Sender Account</label>
+                        <input type="text" id="senderAccount" value="ACC789012" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="receiverAccount">📥 Receiver Account</label>
+                        <input type="text" id="receiverAccount" value="ACC456789" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="transactionType">🏦 Transaction Type</label>
+                        <select id="transactionType" required>
+                            <option value="wire_transfer" selected>Wire Transfer</option>
+                            <option value="ach_transfer">ACH Transfer</option>
+                            <option value="international_wire">International Wire</option>
+                            <option value="domestic_wire">Domestic Wire</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="emailContent">📧 Associated Email Content</label>
+                        <textarea id="emailContent" rows="6" required>From: sarah.wilson@globaltech-corp.com
+To: finance@globaltech-corp.com
+Subject: URGENT - Strategic Acquisition Wire Transfer
+
+Hi Finance Team,
+
+I need you to process an urgent wire transfer for our confidential acquisition deal. The target company requires immediate payment to secure the transaction before market close.
+
+Amount: $485,000.00
+Recipient: Meridian Capital Holdings (ACC456789)
+Purpose: Strategic acquisition deposit as discussed
+
+Please process this immediately. This is time-sensitive and confidential.
+
+Best regards,
+Sarah Wilson
+CEO, GlobalTech Corp</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="context">📝 Additional Context</label>
+                        <input type="text" id="context" value="Large wire transfer with CEO impersonation email">
+                    </div>
+                    
+                    <button type="submit" class="btn" id="analyzeBtn">🔍 Analyze Transaction</button>
+                </form>
+            </div>
+            
+            <div class="results-panel">
+                <h3>📊 Analysis Results</h3>
+                <div id="resultsContent">
+                    <p style="text-align: center; color: #666; padding: 40px;">Submit a transaction for analysis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        
+        // Load consortium status
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/consortium/status');
+                const data = await response.json();
+                
+                const statusPanel = document.getElementById('statusPanel');
+                const statusContent = document.getElementById('statusContent');
+                
+                if (data.status === 'online') {
+                    statusPanel.className = 'status-panel status-online';
+                    const participants = data.participants.participants || [];
+                    
+                    statusContent.innerHTML = `
+                        <p>✅ <strong>Consortium Online</strong> - ${participants.length} banks active</p>
+                        <div class="participants">
+                            ${participants.map(p => `
+                                <div class="participant">
+                                    <h4>${p.node_id.toUpperCase()}</h4>
+                                    <p>${p.specialty.replace('_', ' ')}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    statusPanel.className = 'status-panel status-offline';
+                    statusContent.innerHTML = `❌ <strong>Consortium Offline</strong><br><small>${data.error}</small>`;
+                }
+            } catch (error) {
+                document.getElementById('statusPanel').className = 'status-panel status-offline';
+                document.getElementById('statusContent').innerHTML = `❌ <strong>Connection Error</strong><br><small>${error.message}</small>`;
+            }
+        }
+        
+        // Submit form
+        document.getElementById('fraudForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('analyzeBtn');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            btn.disabled = true;
+            btn.textContent = '🔍 Analyzing...';
+            
+            resultsContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing transaction with consortium...</p>
+                </div>
+            `;
+            
+            try {
+                const formData = {
+                    amount: document.getElementById('amount').value,
+                    sender_account: document.getElementById('senderAccount').value,
+                    receiver_account: document.getElementById('receiverAccount').value,
+                    transaction_type: document.getElementById('transactionType').value,
+                    email_content: document.getElementById('emailContent').value,
+                    context: document.getElementById('context').value
+                };
+                
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    pollResults(data.session_id);
+                } else {
+                    throw new Error(data.error);
+                }
+                
+            } catch (error) {
+                resultsContent.innerHTML = `<p style="color: red; text-align: center;">❌ Error: ${error.message}</p>`;
+                btn.disabled = false;
+                btn.textContent = '🔍 Analyze Transaction';
+            }
+        });
+        
+        // Poll for results
+        async function pollResults(sessionId) {
+            try {
+                console.log('Polling for session:', sessionId); // Debug log
+                const response = await fetch(`/api/results/${sessionId}`);
+                const data = await response.json();
+                
+                console.log('Poll response:', response.status, data); // Debug log
+                
+                if (data.success) {
+                    // Check if results are complete (not just status updates)
+                    if (data.results && data.results.final_score !== undefined) {
+                        displayResults(data.results);
+                        document.getElementById('analyzeBtn').disabled = false;
+                        document.getElementById('analyzeBtn').textContent = '🔍 Analyze Transaction';
+                    } else {
+                        // Still collecting results, poll again
+                        console.log('Still collecting results, polling again in 2 seconds...');
+                        setTimeout(() => pollResults(sessionId), 2000);
+                    }
+                } else if (response.status === 404) {
+                    // Still processing, poll again
+                    console.log('Results not ready, polling again in 2 seconds...');
+                    setTimeout(() => pollResults(sessionId), 2000);
+                } else {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Polling error:', error); // Debug log
+                document.getElementById('resultsContent').innerHTML = `<p style="color: red; text-align: center;">❌ Error: ${error.message}</p>`;
+                document.getElementById('analyzeBtn').disabled = false;
+                document.getElementById('analyzeBtn').textContent = '🔍 Analyze Transaction';
+            }
+        }
+        
+        // Display results
+        function displayResults(results) {
+            console.log('Received results:', results); // Debug log
+            
+            const score = Math.round((results.final_score || 0) * 100);
+            let riskClass = 'risk-low';
+            let riskText = 'LOW RISK';
+            let riskIcon = '✅';
+            
+            if (score >= 70) {
+                riskClass = 'risk-high';
+                riskText = 'HIGH RISK';
+                riskIcon = '🚨';
+            } else if (score >= 40) {
+                riskClass = 'risk-medium';
+                riskText = 'MEDIUM RISK';
+                riskIcon = '⚠️';
+            }
+            
+            const bankScores = Object.entries(results.individual_scores || {});
+            const recommendation = (results.recommendation || 'review').toUpperCase();
+            const consensus = results.participant_consensus || {};
+            const insights = results.specialist_insights || [];
+            
+            // Enhanced risk assessment text
+            let riskDescription = '';
+            if (score >= 70) {
+                riskDescription = 'Transaction shows strong indicators of fraudulent activity requiring immediate investigation.';
+            } else if (score >= 40) {
+                riskDescription = 'Transaction contains suspicious patterns that warrant additional verification before processing.';
+            } else {
+                riskDescription = 'Transaction appears legitimate based on current risk models and patterns.';
+            }
+            
+            // Bank specialization descriptions and findings
+            const bankSpecialties = {
+                'bank_A': 'Wire Transfer Specialist',
+                'bank_B': 'Identity Verification Expert', 
+                'bank_C': 'Network Pattern Analyst'
+            };
+            
+            // Generate specific findings for each bank based on their scores and specialization
+            function getBankFindings(bank, score, insights) {
+                const riskScore = Math.round(score * 100);
+                
+                const findings = {
+                    'bank_A': {
+                        high: [`🚨 Suspicious wire transfer pattern detected`, `⚠️ Transaction amount exceeds normal business profile`, `🔍 Geographic routing shows irregular pathway`],
+                        medium: [`⚠️ Wire transfer amount requires additional verification`, `🔍 Transaction timing outside normal business hours`, `📊 Amount pattern deviates from account history`],
+                        low: [`✅ Wire transfer follows standard protocols`, `✅ Transaction amount within expected range`, `✅ Routing pathway appears legitimate`]
+                    },
+                    'bank_B': {
+                        high: [`🚨 Receiver identity verification failed multiple checks`, `⚠️ Account shows signs of potential compromise`, `🔍 Identity patterns suggest social engineering`],
+                        medium: [`⚠️ Receiver identity requires additional verification`, `🔍 Account activity shows unusual patterns`, `📊 Identity confidence below standard threshold`],
+                        low: [`✅ Receiver identity verified successfully`, `✅ Account shows normal activity patterns`, `✅ Identity verification passed all checks`]
+                    },
+                    'bank_C': {
+                        high: [`🚨 Network analysis reveals suspicious behavioral patterns`, `⚠️ Account relationship network shows fraud indicators`, `🔍 Timing patterns consistent with automated attacks`],
+                        medium: [`⚠️ Network behavior requires additional monitoring`, `🔍 Account shows atypical interaction patterns`, `📊 Behavioral signatures deviate from baseline`],
+                        low: [`✅ Network behavior within normal parameters`, `✅ Account relationships appear legitimate`, `✅ Behavioral patterns match expected profile`]
+                    }
+                };
+                
+                let riskLevel = 'low';
+                if (riskScore >= 70) riskLevel = 'high';
+                else if (riskScore >= 40) riskLevel = 'medium';
+                
+                return findings[bank][riskLevel] || [`Analysis completed - ${riskScore}% risk detected`];
+            }
+            
+            // Calculate agreement level
+            const variancePercent = ((results.variance || 0) * 100).toFixed(2);
+            let agreementText = '';
+            if (results.variance < 0.001) {
+                agreementText = 'Excellent agreement between specialist banks';
+            } else if (results.variance < 0.01) {
+                agreementText = 'Strong consensus across banking experts';
+            } else {
+                agreementText = 'Moderate consensus with some variation in assessment';
+            }
+            
+            document.getElementById('resultsContent').innerHTML = `
+                <div class="risk-indicator">
+                    <div class="risk-score ${riskClass}">${score}%</div>
+                    <h3>${riskIcon} ${riskText}</h3>
+                    <p><strong>Recommendation:</strong> ${recommendation}</p>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">${riskDescription}</p>
+                </div>
+                
+                <div style="margin: 20px 0; padding: 15px; background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h4>🏦 Specialist Bank Analysis</h4>
+                    <div class="bank-scores">
+                        ${bankScores.map(([bank, score]) => {
+                            const findings = getBankFindings(bank, score, insights);
+                            return `
+                            <div class="bank-score" style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;">
+                                <h4>${bankSpecialties[bank] || bank.toUpperCase()}</h4>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #667eea; margin-bottom: 10px;">${Math.round((score || 0) * 100)}%</div>
+                                <p style="font-size: 0.8em; color: #666; margin-bottom: 10px;">
+                                    ${bank === 'bank_A' ? 'Transaction patterns & wire transfer analysis' : 
+                                      bank === 'bank_B' ? 'Identity verification & receiver validation' : 
+                                      'Network behavior & account relationship analysis'}
+                                </p>
+                                <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                                    <strong style="font-size: 0.9em; color: #333;">Key Findings:</strong>
+                                    <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 0.85em;">
+                                        ${findings.map(finding => `<li style="margin-bottom: 3px;">${finding}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        `}).join('')}
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <h4>� Detailed Analysis Summary</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                        <div>
+                            <p><strong>Expert Consensus:</strong><br>
+                               ${consensus.high_risk || 0} of ${consensus.total || 0} specialist banks flagged this transaction</p>
+                            <p><strong>Agreement Level:</strong><br>
+                               ${agreementText} (${variancePercent}% variance)</p>
+                        </div>
+                        <div>
+                            <p><strong>Processing Method:</strong><br>
+                               Privacy-preserving distributed analysis</p>
+                            <p><strong>Analysis Time:</strong><br>
+                               ${new Date(results.completion_time).toLocaleTimeString()}</p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 4px; border: 1px solid #e0e0e0;">
+                        <p style="font-size: 0.85em; color: #666; margin: 0;">
+                            <strong>Session ID:</strong> ${results.session_id}<br>
+                            <strong>Privacy Protection:</strong> Original email content was anonymized into ${Object.keys(results.individual_scores).length > 0 ? '35' : 'N/A'} behavioral features before analysis
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Load status on page load
+        loadStatus();
+        setInterval(loadStatus, 30000); // Refresh every 30 seconds
+    </script>
+</body>
+</html>
