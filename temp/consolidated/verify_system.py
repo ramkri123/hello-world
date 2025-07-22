@@ -25,7 +25,7 @@ def verify_structure():
         "src/consortium/bank_B_process.py", 
         "src/consortium/bank_C_process.py",
         "templates/ceo_fraud_focus.html",
-        "docs/ARCHITECTURE.md",
+        "docs/PROBLEM_AND_SOLUTION_ARCHITECTURE.md",
         "models/bank_A_model.pkl",
         "models/bank_B_model.pkl",
         "models/bank_C_model.pkl"

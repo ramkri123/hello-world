@@ -62,7 +62,8 @@ class ConsortiumHub:
         self._secret_salt = secrets.token_hex(32)  # 64-character secret
         
         # State management
-        self.participants: Dict[str, ParticipantInfo] = {}
+        self.participants: Dict[str, ParticipantInfo] = {}  # Legacy system (kept for compatibility)
+        self.banks: Dict[str, ParticipantInfo] = {}  # New secure bank registration system
         self.active_sessions: Dict[str, InferenceSession] = {}
         self.session_results: Dict[str, Dict] = {}
         self.pending_inferences: Dict[str, Dict] = {}  # Queue for bank polling
@@ -207,12 +208,17 @@ class ConsortiumHub:
                 logger.info(f"   📈 Features: {len(features)} values - First 10: {[f'{f:.3f}' for f in features[:10]]}")
                 logger.info(f"   🌐 Source IP: {request.remote_addr}")
                 
-                # Check if enough participants
-                active_participants = [p for p in self.participants.values() if p.status == "active"]
-                if len(active_participants) < self.min_participants:
-                    logger.error(f"❌ Not enough participants: Need {self.min_participants}, have {len(active_participants)}")
+                # Check if enough banks available for secure inference
+                active_banks = [b for b in self.banks.values() if b.status in ["active", "online"]]
+                logger.info(f"🔍 BANK AVAILABILITY CHECK:")
+                logger.info(f"   📊 Total banks: {len(self.banks)}")
+                logger.info(f"   ✅ Active banks: {len(active_banks)}")
+                logger.info(f"   🏦 Bank IDs: {list(self.banks.keys())}")
+                
+                if len(active_banks) < self.min_participants:
+                    logger.error(f"❌ Not enough banks: Need {self.min_participants}, have {len(active_banks)}")
                     return jsonify({
-                        "error": f"Not enough participants. Need {self.min_participants}, have {len(active_participants)}"
+                        "error": f"Not enough banks. Need {self.min_participants}, have {len(active_banks)}"
                     }), 400
                 
                 # Create session
@@ -232,7 +238,7 @@ class ConsortiumHub:
                 
                 logger.info(f"🎯 CREATED SESSION: {session_id}")
                 logger.info(f"   ⏰ Deadline: {session.deadline.strftime('%H:%M:%S')}")
-                logger.info(f"   🏦 Will distribute to: {[p.node_id for p in active_participants]}")
+                logger.info(f"   🏦 Will distribute to: {[b.node_id for b in active_banks]}")
                 
                 # Start inference distribution in background
                 threading.Thread(
@@ -246,7 +252,7 @@ class ConsortiumHub:
                 return jsonify({
                     "session_id": session_id,
                     "status": "submitted",
-                    "participants": len(active_participants),
+                    "participants": len(active_banks),
                     "estimated_completion": (datetime.now() + timedelta(seconds=self.inference_timeout)).isoformat()
                 })
                 
@@ -350,6 +356,105 @@ class ConsortiumHub:
             except Exception as e:
                 logger.error(f"Poll inference error: {e}")
                 return jsonify({"error": str(e)}), 500
+        
+        # New endpoints for outbound-only bank architecture
+        @self.app.route('/register_bank', methods=['POST'])
+        def register_bank():
+            """Register a bank with outbound-only communication"""
+            try:
+                data = request.get_json()
+                bank_id = data['bank_id']
+                specialty = data['specialty']
+                status = data.get('status', 'online')
+                
+                # Store bank information in the new banks registry
+                self.banks[bank_id] = ParticipantInfo(
+                    node_id=bank_id,
+                    specialty=specialty,
+                    endpoint=f"outbound-only",  # No inbound endpoint
+                    geolocation="secure",
+                    registered_at=datetime.now(),
+                    last_heartbeat=datetime.now(),
+                    status=status
+                )
+                
+                logger.info(f"🏦 Bank {bank_id} registered ({specialty}) - Outbound only")
+                
+                return jsonify({
+                    "status": "registered",
+                    "bank_id": bank_id,
+                    "message": "Bank registered successfully"
+                })
+                
+            except Exception as e:
+                logger.error(f"Bank registration error: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/get_analysis_request/<bank_id>', methods=['GET'])
+        def get_analysis_request(bank_id):
+            """Poll endpoint for banks to get analysis requests"""
+            try:
+                # Check if bank is registered
+                if bank_id not in self.banks:
+                    return jsonify({"error": "Bank not registered"}), 401
+                
+                # Update heartbeat
+                self.banks[bank_id].last_heartbeat = datetime.now()
+                
+                # Check for pending analysis requests for this bank
+                for request_id, request_data in list(self.pending_inferences.items()):
+                    if bank_id in request_data.get('pending_participants', []):
+                        # Remove this bank from pending list
+                        request_data['pending_participants'].remove(bank_id)
+                        
+                        return jsonify({
+                            "has_request": True,
+                            "request_id": request_id,
+                            "transaction_data": request_data['raw_data'],
+                            "deadline": request_data['deadline']
+                        })
+                
+                # No requests pending
+                return jsonify({"has_request": False})
+                
+            except Exception as e:
+                logger.error(f"Get analysis request error: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/submit_analysis', methods=['POST'])
+        def submit_analysis():
+            """Receive analysis results from banks"""
+            try:
+                data = request.get_json()
+                request_id = data['request_id']
+                analysis = data['analysis']
+                
+                # Find the active session
+                if request_id in self.active_sessions:
+                    session = self.active_sessions[request_id]
+                    bank_id = analysis['bank_id']
+                    
+                    # Store the response
+                    session.responses[bank_id] = analysis
+                    
+                    logger.info(f"📊 Received analysis from {bank_id} for {request_id}: {analysis['fraud_score']:.3f}")
+                    
+                    # Check if we have all responses
+                    if len(session.responses) >= self.min_participants:
+                        # Process the complete analysis
+                        threading.Thread(
+                            target=self._complete_inference,
+                            args=(request_id,),
+                            daemon=True
+                        ).start()
+                    
+                    return jsonify({"status": "received"})
+                else:
+                    return jsonify({"error": "Request not found"}), 404
+                
+            except Exception as e:
+                logger.error(f"Submit analysis error: {e}")
+                return jsonify({"error": str(e)}), 500
     
     def _create_anonymized_account_identifiers(self, sender_account: str, receiver_account: str) -> Dict[str, str]:
         """Create anonymized account identifiers using agreed-upon consortium hash function"""
@@ -368,6 +473,7 @@ class ConsortiumHub:
         # 1. Authority Claims (Direct impersonation)
         authority_phrases = [
             'ceo here', 'this is the ceo', 'from the ceo', 'ceo speaking',
+            'i am the ceo', 'i am ceo', 'this is ceo', 'ceo so do it',
             'president here', 'i am the president', 'this is your president',
             'executive here', 'senior executive', 'c-suite', 'board member',
             'founder here', 'owner here', 'director here'
@@ -459,10 +565,24 @@ class ConsortiumHub:
     def _apply_fraud_pattern_boost(self, consensus_score: float, session) -> float:
         """Apply fraud pattern boost based on obvious fraud indicators"""
         try:
-            # Get original email content for analysis
+            print(f"🚨 DEBUG: FRAUD PATTERN BOOST CALLED")  # Force console output
+            logger.info(f"🚨 DEBUG: FRAUD PATTERN BOOST CALLED")
+            
+            # Get original email content for analysis - try multiple sources
             email_content = session.raw_data.get('email_content', '').lower()
             transaction_data = session.raw_data.get('transaction_data', {})
+            
+            # If email_content is empty (deleted for privacy), try communication field
+            if not email_content:
+                email_content = transaction_data.get('communication', '').lower()
+            
             amount = transaction_data.get('amount', 0)
+            
+            print(f"🔍 FRAUD PATTERN ANALYSIS - Content: '{email_content}'")  # Force console output
+            logger.info(f"   🔍 FRAUD PATTERN ANALYSIS:")
+            logger.info(f"      Email content length: {len(email_content)} chars")
+            logger.info(f"      Amount: ${amount:,.2f}")
+            logger.info(f"      Content preview: '{email_content[:50]}...'")
             
             boost_factor = 0.0
             fraud_indicators = []
@@ -518,7 +638,7 @@ class ConsortiumHub:
             return consensus_score
     
     def _distribute_inference(self, session_id: str):
-        """Distribute inference request to all participants via polling queue"""
+        """Distribute inference request to all banks via polling queue"""
         try:
             if session_id not in self.active_sessions:
                 logger.error(f"Session {session_id} not found")
@@ -528,23 +648,24 @@ class ConsortiumHub:
             session.status = "collecting"
             
             logger.info(f"📤 DISTRIBUTING INFERENCE SESSION: {session_id}")
-            logger.info(f"   🏦 Participants: {len(self.participants)}")
+            logger.info(f"   🏦 Banks: {len(self.banks)}")
             logger.info(f"   📊 Features: {len(session.features)} anonymous features")
             
             # Create pending inference request for bank polling
-            active_participants = [p.node_id for p in self.participants.values() if p.status == "active"]
+            active_banks = [b.node_id for b in self.banks.values() if b.status in ["active", "online"]]
             
             self.pending_inferences[session_id] = {
                 'session_id': session_id,
                 'features': session.features,
+                'raw_data': session.raw_data,  # Include raw data for banks
                 'anonymized_accounts': session.anonymized_accounts or {},
                 'use_case': session.use_case,
                 'deadline': session.deadline.isoformat(),
-                'pending_participants': active_participants.copy(),
+                'pending_participants': active_banks.copy(),
                 'created_at': datetime.now().isoformat()
             }
             
-            logger.info(f"   📋 Queued inference for participants: {active_participants}")
+            logger.info(f"   📋 Queued inference for banks: {active_banks}")
             logger.info(f"   ⏰ Banks have {self.inference_timeout} seconds to respond")
             
             # Start timeout monitoring
@@ -568,7 +689,7 @@ class ConsortiumHub:
             # Check if session is still active
             if session_id in self.active_sessions:
                 session = self.active_sessions[session_id]
-                expected_responses = len([p for p in self.participants.values() if p.status == "active"])
+                expected_responses = len([b for b in self.banks.values() if b.status in ["active", "online"]])
                 actual_responses = len(session.responses)
                 
                 logger.warning(f"⏰ TIMEOUT for session {session_id}")
@@ -614,7 +735,7 @@ class ConsortiumHub:
             logger.info(f"   📊 Responses received: {len(responses)}")
             
             # Calculate aggregated results with scenario-aware weighting
-            individual_scores = {pid: r['risk_score'] for pid, r in responses.items()}
+            individual_scores = {pid: r['fraud_score'] for pid, r in responses.items()}
             
             # Determine bank scenarios based on account ownership
             transaction_data = session.raw_data.get('transaction_data', {})
@@ -648,6 +769,9 @@ class ConsortiumHub:
             
             variance = sum((s - consensus_score) ** 2 for s in individual_scores.values()) / len(individual_scores)
             
+            print(f"🚨 DEBUG: About to call fraud pattern boost")  # Force console output
+            logger.info(f"🚨 DEBUG: About to call fraud pattern boost")
+            
             # Apply fraud pattern boost
             final_score = self._apply_fraud_pattern_boost(consensus_score, session)
             
@@ -674,17 +798,17 @@ class ConsortiumHub:
             specialist_insights = []
             for participant_id, response in responses.items():
                 participant = self.participants.get(participant_id)
-                if participant and response['risk_score'] > 0.5:
+                if participant and response['fraud_score'] > 0.5:
                     insight = {
                         "specialty": participant.specialty,
-                        "risk_level": "high" if response['risk_score'] > 0.7 else "medium",
+                        "risk_level": "high" if response['fraud_score'] > 0.7 else "medium",
                         "confidence": response['confidence']
                     }
                     specialist_insights.append(insight)
                     logger.info(f"   🔍 Specialist Alert: {participant.specialty} flagged {insight['risk_level']} risk")
             
             # Store results
-            scores = [r['risk_score'] for r in responses.values()]
+            scores = [r['fraud_score'] for r in responses.values()]
             results = {
                 "session_id": session_id,
                 "use_case": session.use_case,
@@ -692,7 +816,7 @@ class ConsortiumHub:
                 "consensus_score": consensus_score,
                 "variance": variance,
                 "recommendation": recommendation,
-                "individual_scores": {pid: r['risk_score'] for pid, r in responses.items()},
+                "individual_scores": {pid: r['fraud_score'] for pid, r in responses.items()},
                 "participant_consensus": {
                     "total": len(responses),
                     "high_risk": len([s for s in scores if s > 0.5]),

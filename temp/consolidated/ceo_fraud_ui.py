@@ -34,21 +34,75 @@ def analyze_transaction():
     """Analyze a transaction using the consortium system"""
     try:
         # Get the transaction data from the request
-        transaction_data = request.get_json()
+        ui_data = request.get_json()
         
-        logger.info(f"Analyzing transaction: {json.dumps(transaction_data, indent=2)}")
+        logger.info(f"UI Data received: {json.dumps(ui_data, indent=2)}")
+        
+        # Transform UI data format to consortium hub format
+        transaction_data = ui_data.get('transaction_data', {})
+        
+        # Convert UI format to consortium format
+        consortium_data = {
+            "email_content": transaction_data.get('communication', ''),
+            "transaction_data": {
+                "amount": transaction_data.get('amount', 0),
+                "sender_account": "ACCA12345",  # Default sender account
+                "receiver_account": "ACCB67890",  # Default receiver account  
+                "transaction_type": "wire_transfer"
+            },
+            "sender_data": {"bank": "bank_A"},
+            "receiver_data": {"bank": "bank_B"}
+        }
+        
+        logger.info(f"Sending to consortium: {json.dumps(consortium_data, indent=2)}")
         
         # Send to consortium hub for analysis
         response = requests.post(
-            f"{CONSORTIUM_HUB_URL}/analyze",
-            json=transaction_data,
+            f"{CONSORTIUM_HUB_URL}/inference",
+            json=consortium_data,
             timeout=30
         )
         
         if response.status_code == 200:
             result = response.json()
-            logger.info(f"Analysis result: {json.dumps(result, indent=2)}")
-            return jsonify(result)
+            logger.info(f"Consortium response: {json.dumps(result, indent=2)}")
+            
+            # Wait for analysis to complete
+            session_id = result.get('session_id')
+            if session_id:
+                # Poll for results
+                import time
+                time.sleep(6)  # Wait for analysis
+                
+                results_response = requests.get(
+                    f"{CONSORTIUM_HUB_URL}/results/{session_id}",
+                    timeout=10
+                )
+                
+                if results_response.status_code == 200:
+                    analysis_result = results_response.json()
+                    logger.info(f"Analysis complete: {json.dumps(analysis_result, indent=2)}")
+                    
+                    # Transform back to UI format
+                    ui_result = {
+                        "session_id": session_id,
+                        "bank_risk_score": analysis_result.get('consensus_score', 0.0),
+                        "consortium_risk_score": analysis_result.get('final_score', 0.0),
+                        "recommendation": analysis_result.get('recommendation', 'unknown'),
+                        "individual_scores": analysis_result.get('individual_scores', {}),
+                        "variance": analysis_result.get('variance', 0.0),
+                        "specialist_insights": analysis_result.get('specialist_insights', []),
+                        "ceo_pattern_boost": analysis_result.get('final_score', 0.0) - analysis_result.get('consensus_score', 0.0)
+                    }
+                    
+                    return jsonify(ui_result)
+                else:
+                    return jsonify({
+                        'error': f'Could not get results: {results_response.status_code}',
+                        'session_id': session_id
+                    }), 500
+            else:
+                return jsonify({'error': 'No session ID returned'}), 500
         else:
             logger.error(f"Consortium hub error: {response.status_code} - {response.text}")
             return jsonify({

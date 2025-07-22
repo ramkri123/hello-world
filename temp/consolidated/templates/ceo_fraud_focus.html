@@ -360,8 +360,8 @@
             });
             
             // Display consortium analysis
-            const consortiumScore = result.final_risk_score || 0.0;
-            const patternBoost = consortiumScore - bankScore;
+            const consortiumScore = result.consortium_risk_score || 0.0;
+            const patternBoost = result.ceo_pattern_boost || (consortiumScore - bankScore);
             document.getElementById('consortiumScore').innerHTML = `Final Score: ${(consortiumScore * 100).toFixed(1)}%<br><small>(+${(patternBoost * 100).toFixed(1)}% pattern boost)</small>`;
             document.getElementById('consortiumScore').className = `score-display ${getScoreClass(consortiumScore)}`;
             
