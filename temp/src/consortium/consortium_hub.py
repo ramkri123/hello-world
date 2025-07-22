@@ -14,6 +14,15 @@ from typing import Dict, List, Any
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 import logging
+import sys
+import os
+
+# Add current directory to path for imports
+sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from privacy_preserving_nlp import PrivacyPreservingNLP
+from account_anonymizer import AccountAnonymizer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -157,7 +166,6 @@ class ConsortiumHub:
                 # Check if we have raw transaction data that needs NLP processing
                 if 'email_content' in data or 'transaction_data' in data:
                     # Privacy-preserving NLP feature extraction
-                    from src.consortium.privacy_preserving_nlp import PrivacyPreservingNLP
                     nlp = PrivacyPreservingNLP()
                     
                     transaction_data = data.get('transaction_data', {})
@@ -345,14 +353,94 @@ class ConsortiumHub:
     
     def _create_anonymized_account_identifiers(self, sender_account: str, receiver_account: str) -> Dict[str, str]:
         """Create anonymized account identifiers using agreed-upon consortium hash function"""
-        from src.consortium.account_anonymizer import AccountAnonymizer
+        
         
         # Use consortium-standard one-way hash function that all banks can also use
         return AccountAnonymizer.anonymize_transaction_accounts(sender_account, receiver_account)
     
+    def _detect_ceo_impersonation(self, email_content: str, amount: float) -> float:
+        """
+        Advanced CEO impersonation detection using multiple behavioral indicators
+        Returns confidence score (0.0 to 0.35) based on suspicious patterns
+        """
+        confidence_score = 0.0
+        
+        # 1. Authority Claims (Direct impersonation)
+        authority_phrases = [
+            'ceo here', 'this is the ceo', 'from the ceo', 'ceo speaking',
+            'president here', 'i am the president', 'this is your president',
+            'executive here', 'senior executive', 'c-suite', 'board member',
+            'founder here', 'owner here', 'director here'
+        ]
+        if any(phrase in email_content for phrase in authority_phrases):
+            confidence_score += 0.25  # Strong indicator
+            
+        # 2. Authority + Secrecy Combination (Classic CEO fraud)
+        authority_words = ['ceo', 'president', 'executive', 'director', 'founder']
+        secrecy_words = ['confidential', 'discreet', 'private', 'secret', 'classified', 'need to know']
+        
+        has_authority = any(word in email_content for word in authority_words)
+        has_secrecy = any(word in email_content for word in secrecy_words)
+        
+        if has_authority and has_secrecy:
+            confidence_score += 0.20
+            
+        # 3. Bypass Normal Procedures (Red flag for impersonation)
+        bypass_phrases = [
+            'bypass', 'skip the usual', 'exception', 'special case', 'different process',
+            'directly to', 'not through normal', 'outside normal', 'urgent exception'
+        ]
+        if any(phrase in email_content for phrase in bypass_phrases):
+            confidence_score += 0.15
+            
+        # 4. Time Pressure + Authority (Manipulation tactic)
+        urgency_phrases = ['urgent', 'immediate', 'asap', 'right now', 'quickly', 'deadline']
+        urgency_count = sum(1 for phrase in urgency_phrases if phrase in email_content)
+        
+        if has_authority and urgency_count >= 2:
+            confidence_score += 0.18
+            
+        # 5. Acquisition/Deal Language (Common CEO fraud scenario)
+        deal_phrases = [
+            'acquisition', 'merger', 'deal', 'purchase', 'investment opportunity',
+            'close the deal', 'business opportunity', 'vendor payment', 'contract'
+        ]
+        if any(phrase in email_content for phrase in deal_phrases) and amount > 100000:
+            confidence_score += 0.12
+            
+        # 6. Communication Anomalies (Behavioral red flags)
+        anomaly_phrases = [
+            'handle discreetly', 'between us', 'don\'t tell', 'keep quiet',
+            'off the books', 'cash transaction', 'wire transfer only'
+        ]
+        if any(phrase in email_content for phrase in anomaly_phrases):
+            confidence_score += 0.10
+            
+        # 7. Grammar/Style Inconsistencies (Often indicates impersonation)
+        # Look for overly formal language mixed with urgency (suspicious pattern)
+        formal_words = ['pursuant', 'hereby', 'aforementioned', 'heretofore']
+        informal_urgent = ['asap', 'quick', 'hurry', 'fast']
+        
+        has_formal = any(word in email_content for word in formal_words)
+        has_informal_urgent = any(word in email_content for word in informal_urgent)
+        
+        if has_formal and has_informal_urgent:
+            confidence_score += 0.08
+            
+        # 8. External Pressure References (Social engineering)
+        pressure_phrases = [
+            'board approval', 'investor pressure', 'deadline from', 'client demands',
+            'regulatory requirement', 'audit requirement', 'compliance issue'
+        ]
+        if any(phrase in email_content for phrase in pressure_phrases):
+            confidence_score += 0.05
+            
+        # Cap the maximum confidence score
+        return min(confidence_score, 0.35)
+    
     def _calculate_scenario_weights(self, individual_scores: Dict[str, float], sender_account: str, receiver_account: str) -> Dict[str, float]:
         """Calculate confidence weights - banks determine their own scenarios using shared hash function"""
-        from src.consortium.account_anonymizer import AccountAnonymizer
+        
         
         # Banks determine their own knowledge scenarios by hashing their accounts
         # and comparing to the anonymized identifiers they received
@@ -379,15 +467,16 @@ class ConsortiumHub:
             boost_factor = 0.0
             fraud_indicators = []
             
+            # Enhanced CEO/Executive Impersonation Detection
+            ceo_impersonation_score = self._detect_ceo_impersonation(email_content, amount)
+            if ceo_impersonation_score > 0:
+                boost_factor += ceo_impersonation_score
+                fraud_indicators.append(f"CEO impersonation (confidence: {ceo_impersonation_score:.2f})")
+            
             # High-value transaction boost
             if amount > 100000:
                 boost_factor += 0.15
                 fraud_indicators.append(f"Large amount: ${amount:,.2f}")
-            
-            # CEO/Executive impersonation
-            if any(phrase in email_content for phrase in ['ceo', 'president', 'executive', 'urgent', 'confidential']):
-                boost_factor += 0.20
-                fraud_indicators.append("Authority impersonation detected")
             
             # Crypto/investment scam patterns
             if any(phrase in email_content for phrase in ['crypto', 'investment', 'return', 'guarantee', 'opportunity']):
@@ -525,7 +614,7 @@ class ConsortiumHub:
             logger.info(f"   📊 Responses received: {len(responses)}")
             
             # Calculate aggregated results with scenario-aware weighting
-            individual_scores = {r['participant_id']: r['risk_score'] for r in responses.values()}
+            individual_scores = {pid: r['risk_score'] for pid, r in responses.items()}
             
             # Determine bank scenarios based on account ownership
             transaction_data = session.raw_data.get('transaction_data', {})

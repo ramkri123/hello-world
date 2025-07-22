@@ -14,7 +14,13 @@ from dataclasses import dataclass
 import numpy as np
 import pickle
 import os
+import sys
+import joblib
 from datetime import datetime
+
+# Add parent directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from consortium.account_anonymizer import AccountAnonymizer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +32,7 @@ class NodeConfig:
     specialty: str
     consortium_url: str
     model_path: str
+    bank_accounts: List[str]  # List of account numbers this bank owns
     geolocation: str = "US-East"
     heartbeat_interval: int = 30
 
@@ -36,15 +43,20 @@ class ParticipantNode:
         self.is_registered = False
         self.is_running = False
         
-        # Load local model
+        # Load local model and scaler
         self.model = self._load_local_model()
+        self.scaler = self._load_scaler()
+        
+        # Store bank account list for scenario determination
+        self.bank_accounts = config.bank_accounts
+        logger.info(f"🏦 Bank {config.node_id} initialized with {len(self.bank_accounts)} accounts")
+        logger.info(f"   📋 Account sample: {self.bank_accounts[:2]}..." if len(self.bank_accounts) > 2 else f"   📋 Accounts: {self.bank_accounts}")
         
     def _load_local_model(self):
         """Load the local AI/ML model"""
         try:
             if os.path.exists(self.config.model_path):
-                with open(self.config.model_path, 'rb') as f:
-                    model = pickle.load(f)
+                model = joblib.load(self.config.model_path)
                 logger.info(f"✅ Loaded model: {self.config.model_path}")
                 return model
             else:
@@ -52,6 +64,21 @@ class ParticipantNode:
                 return None
         except Exception as e:
             logger.error(f"❌ Error loading model: {e}")
+            return None
+    
+    def _load_scaler(self):
+        """Load the feature scaler"""
+        scaler_path = self.config.model_path.replace('_model.pkl', '_scaler.pkl')
+        try:
+            if os.path.exists(scaler_path):
+                scaler = joblib.load(scaler_path)
+                logger.info(f"✅ Loaded scaler: {scaler_path}")
+                return scaler
+            else:
+                logger.warning(f"⚠️ Scaler file not found: {scaler_path}")
+                return None
+        except Exception as e:
+            logger.error(f"❌ Error loading scaler: {e}")
             return None
     
     def register_with_consortium(self) -> bool:
@@ -93,13 +120,25 @@ class ParticipantNode:
             logger.error(f"❌ Registration error: {e}")
             return False
     
-    def process_inference(self, features: List[float]) -> Dict[str, Any]:
-        """Process inference request using local model"""
+    def process_inference(self, features: List[float], anonymized_accounts: Dict[str, str] = None) -> Dict[str, Any]:
+        """Process inference request using local model with scenario-aware confidence"""
         try:
             logger.info(f"🔄 PROCESSING INFERENCE at {self.config.node_id}")
             logger.info(f"   📊 Specialty: {self.config.specialty}")
             logger.info(f"   📈 Features received: {len(features)} values")
             logger.info(f"   🔍 First 10 features: {features[:10]}")
+            
+            # Determine knowledge scenario if account data provided
+            scenario = "knows_neither"
+            confidence_weight = AccountAnonymizer.get_scenario_confidence_weight(scenario)
+            
+            if anonymized_accounts:
+                scenario = AccountAnonymizer.bank_can_determine_ownership(
+                    self.bank_accounts, anonymized_accounts
+                )
+                confidence_weight = AccountAnonymizer.get_scenario_confidence_weight(scenario)
+                logger.info(f"   🎯 Knowledge scenario: {scenario} (confidence weight: {confidence_weight:.2f})")
+                logger.info(f"   🔐 Anonymized accounts: {anonymized_accounts}")
             
             start_time = time.time()
             
@@ -113,22 +152,28 @@ class ParticipantNode:
             # Get probability of fraud (class 1)
             if hasattr(self.model, 'predict_proba'):
                 probabilities = self.model.predict_proba(features_array)
-                score = float(probabilities[0][1]) if len(probabilities[0]) > 1 else float(probabilities[0][0])
+                base_score = float(probabilities[0][1]) if len(probabilities[0]) > 1 else float(probabilities[0][0])
                 logger.info(f"   📊 Model probabilities: {probabilities[0]}")
             else:
-                score = float(self.model.predict(features_array)[0])
+                base_score = float(self.model.predict(features_array)[0])
             
-            # Ensure score is between 0 and 1
-            score = max(0.0, min(1.0, score))
+            # Ensure base score is between 0 and 1
+            base_score = max(0.0, min(1.0, base_score))
             
-            # Calculate confidence based on model certainty
-            confidence = 0.95  # High confidence for real model predictions
+            # Apply scenario-aware confidence weighting
+            final_score = base_score  # Keep original risk score
+            scenario_confidence = confidence_weight  # Use scenario confidence as final confidence
             
-            logger.info(f"🎯 Processed inference: score={score:.3f}, confidence={confidence:.2f}")
+            logger.info(f"🎯 Processed inference:")
+            logger.info(f"   📊 Base risk score: {base_score:.3f}")
+            logger.info(f"   🎭 Scenario: {scenario}")
+            logger.info(f"   🎯 Final confidence: {scenario_confidence:.2f}")
             
             return {
-                "risk_score": score,
-                "confidence": confidence,
+                "risk_score": final_score,
+                "base_risk_score": base_score,
+                "confidence": scenario_confidence,
+                "scenario": scenario,
                 "processed_at": datetime.now().isoformat(),
                 "model_version": "1.0"
             }
@@ -138,6 +183,7 @@ class ParticipantNode:
             return {
                 "risk_score": 0.5,  # Default neutral score
                 "confidence": 0.1,
+                "scenario": "error",
                 "error": str(e)
             }
 
@@ -224,7 +270,7 @@ class ParticipantNode:
         logger.info(f"🛑 Stopped {self.config.node_id}")
 
 def create_bank_nodes(consortium_url: str) -> List[ParticipantNode]:
-    """Create the three bank participant nodes"""
+    """Create the three bank participant nodes with their account lists"""
     nodes = []
     
     # Bank A - Wire Transfer Specialist
@@ -232,7 +278,8 @@ def create_bank_nodes(consortium_url: str) -> List[ParticipantNode]:
         node_id="bank_A",
         specialty="wire_transfer_specialist",
         consortium_url=consortium_url,
-        model_path="models/bank_A_model.pkl"
+        model_path="models/bank_A_model.pkl",
+        bank_accounts=['ACCA12345', 'ACCA67890', 'ACCA11111', 'ACCA22222', 'ACCA33333']
     )
     nodes.append(ParticipantNode(config_a))
     
@@ -241,7 +288,8 @@ def create_bank_nodes(consortium_url: str) -> List[ParticipantNode]:
         node_id="bank_B", 
         specialty="identity_verification_expert",
         consortium_url=consortium_url,
-        model_path="models/bank_B_model.pkl"
+        model_path="models/bank_B_model.pkl",
+        bank_accounts=['ACCB67890', 'ACCB12345', 'ACCB22222', 'ACCB44444', 'ACCB55555']
     )
     nodes.append(ParticipantNode(config_b))
     
@@ -250,7 +298,8 @@ def create_bank_nodes(consortium_url: str) -> List[ParticipantNode]:
         node_id="bank_C",
         specialty="network_pattern_analyst", 
         consortium_url=consortium_url,
-        model_path="models/bank_C_model.pkl"
+        model_path="models/bank_C_model.pkl",
+        bank_accounts=['ACCC99999', 'ACCC12345', 'ACCC55555', 'ACCC66666', 'ACCC77777']
     )
     nodes.append(ParticipantNode(config_c))
     
