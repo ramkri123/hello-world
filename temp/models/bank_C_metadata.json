@@ -1,16 +1,34 @@
 {
   "bank_id": "bank_C",
-  "specialty": "network_account_specialist",
-  "feature_range": [
-    0,
-    35
+  "specialty": "network_analysis_specialist",
+  "description": "Focuses on external patterns (often knows neither)",
+  "training_approach": "bank_specific_scenario_aware",
+  "scenario_distribution": [
+    0.2,
+    0.2,
+    0.2,
+    0.4
   ],
-  "test_accuracy": 0.9980816934016867,
-  "train_accuracy": 0.998809304435341,
-  "cv_score": 0.9982281255702853,
-  "auc_score": 0.9995531480106035,
-  "oob_score": 0.9978595829730534,
-  "model_type": "realistic_privacy_preserving_random_forest",
-  "training_date": "2025-07-21T08:46:59.080204",
-  "feature_count": 35
+  "expertise_scenarios": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "scenarios": {
+    "0": "Knows both sender and receiver",
+    "1": "Knows only sender",
+    "2": "Knows only receiver",
+    "3": "Knows neither sender nor receiver"
+  },
+  "scenario_weights": {
+    "0": 1.0,
+    "1": 0.8,
+    "2": 0.7,
+    "3": 0.4
+  },
+  "performance": {
+    "overall_accuracy": 1.0,
+    "overall_auc": 1.0
+  }
 }

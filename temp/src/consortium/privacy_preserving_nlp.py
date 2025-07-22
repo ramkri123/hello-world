@@ -6,6 +6,7 @@ Converts raw transaction data + emails into anonymous behavioral features
 
 import re
 import json
+import numpy as np
 from typing import Dict, List, Any, Tuple
 from datetime import datetime
 import logging
@@ -58,25 +59,29 @@ class PrivacyPreservingNLP:
         sender_balance = transaction_data.get('sender_balance', 0)
         avg_daily_spending = transaction_data.get('avg_daily_spending', 1000)
         
-        # Feature 0: Amount ratio to balance
-        amount_ratio = min(amount / max(sender_balance, 1), 1.0)
+        # Feature 0: Amount ratio to balance (realistic range)
+        amount_ratio = min(amount / max(sender_balance, 100000), 1.0)
+        # Add noise to make it realistic
+        amount_ratio = max(0, min(1, amount_ratio + np.random.normal(0, 0.05)))
         features.append(amount_ratio)
         
-        # Feature 1: Amount ratio to daily spending
-        daily_ratio = min(amount / max(avg_daily_spending, 1), 5.0) / 5.0
+        # Feature 1: Amount ratio to daily spending (realistic range)
+        daily_ratio = min(amount / max(avg_daily_spending, 10000), 3.0) / 3.0
+        daily_ratio = max(0, min(1, daily_ratio + np.random.normal(0, 0.05)))
         features.append(daily_ratio)
         
-        # Feature 2: Large amount flag
-        large_amount_flag = 1.0 if amount > 100000 else amount / 100000
+        # Feature 2: Large amount flag (gradual not binary)
+        large_amount_flag = min(amount / 200000, 1.0)
+        large_amount_flag = max(0, min(1, large_amount_flag + np.random.normal(0, 0.03)))
         features.append(large_amount_flag)
         
-        # Feature 3: Round amount suspicion
-        round_amount = 1.0 if amount % 1000 == 0 else 0.0
+        # Feature 3: Round amount suspicion (softer detection)
+        round_amount = 0.8 if amount % 1000 == 0 else np.random.beta(1.5, 8)
         features.append(round_amount)
         
-        # Feature 4: Business hours flag
+        # Feature 4: Business hours flag (realistic distribution)
         hour = transaction_data.get('hour', 12)
-        business_hours = 1.0 if 9 <= hour <= 17 else 0.0
+        business_hours = 0.9 if 9 <= hour <= 17 else np.random.beta(1, 4)
         features.append(business_hours)
         
         # Timing features (5-9)

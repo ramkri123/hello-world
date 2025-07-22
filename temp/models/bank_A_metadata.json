@@ -1,16 +1,32 @@
 {
   "bank_id": "bank_A",
   "specialty": "wire_transfer_specialist",
-  "feature_range": [
-    0,
-    35
+  "description": "Focuses on sender account patterns (usually knows sender)",
+  "training_approach": "bank_specific_scenario_aware",
+  "scenario_distribution": [
+    0.1,
+    0.6,
+    0.05,
+    0.25
   ],
-  "test_accuracy": 0.9966298817154563,
-  "train_accuracy": 0.9974086661002549,
-  "cv_score": 0.9976918719909375,
-  "auc_score": 0.9998630117921521,
-  "oob_score": 0.9962616822429906,
-  "model_type": "realistic_privacy_preserving_random_forest",
-  "training_date": "2025-07-21T08:46:59.075275",
-  "feature_count": 35
+  "expertise_scenarios": [
+    0,
+    1
+  ],
+  "scenarios": {
+    "0": "Knows both sender and receiver",
+    "1": "Knows only sender",
+    "2": "Knows only receiver",
+    "3": "Knows neither sender nor receiver"
+  },
+  "scenario_weights": {
+    "0": 1.0,
+    "1": 0.8,
+    "2": 0.7,
+    "3": 0.4
+  },
+  "performance": {
+    "overall_accuracy": 1.0,
+    "overall_auc": 1.0
+  }
 }

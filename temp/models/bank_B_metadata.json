@@ -1,16 +1,32 @@
 {
   "bank_id": "bank_B",
-  "specialty": "identity_receiver_specialist",
-  "feature_range": [
-    0,
-    35
+  "specialty": "identity_verification_specialist",
+  "description": "Focuses on receiver verification (usually knows receiver)",
+  "training_approach": "bank_specific_scenario_aware",
+  "scenario_distribution": [
+    0.15,
+    0.1,
+    0.55,
+    0.2
   ],
-  "test_accuracy": 0.9969954105721927,
-  "train_accuracy": 0.997933972009566,
-  "cv_score": 0.9976650983419146,
-  "auc_score": 0.9998433651993512,
-  "oob_score": 0.9971132211640511,
-  "model_type": "realistic_privacy_preserving_random_forest",
-  "training_date": "2025-07-21T08:46:59.077845",
-  "feature_count": 35
+  "expertise_scenarios": [
+    0,
+    2
+  ],
+  "scenarios": {
+    "0": "Knows both sender and receiver",
+    "1": "Knows only sender",
+    "2": "Knows only receiver",
+    "3": "Knows neither sender nor receiver"
+  },
+  "scenario_weights": {
+    "0": 1.0,
+    "1": 0.8,
+    "2": 0.7,
+    "3": 0.4
+  },
+  "performance": {
+    "overall_accuracy": 1.0,
+    "overall_auc": 0.9999999999999999
+  }
 }
