@@ -211,7 +211,7 @@ Banks: Transaction Data → TEE Inference → Risk Scores → Banks
 | | Attack Surface | **Smallest** (TEE protection + scores only) | **Medium** (TEE protection + consortium model access) | **Medium** (TEE protection + consortium model access) | **Large** (TEE protection + consortium complete unified model access) |
 | | Overall AI Security | **High** (TEE protection + minimal data/model exposure) | **Medium-High** (TEE protection + consortium model access risk) | **Medium** (TEE protection + gradient vulnerabilities + consortium model access risk) | **Medium** (TEE protection but consortium has complete model with all banks' patterns) |
 | **Governance** | Regulatory & Data Sovereignty | **Best** (data isolation + simple compliance) | **Good** (TEE attestation + boundaries) | **Good** (TEE attestation + boundaries) | **Poor** (data movement + complex compliance) |
-| | Model IP Protection | **Best** (fully local) | **Good** (TEE isolation) | **Good** (TEE isolation) | **Poor** (shared in TEE) |
+| | Model IP Protection | **Best** (fully local) | **Good** (TEE isolation) | **Good** (TEE isolation) | **Good** (TEE isolation) |
 | | Fairness Auditing | **Difficult** (isolated models) | **Good** (aggregated insights) | **Good** (aggregated insights) | **Best** (centralized analysis) |
 
 **All aspects considered**
