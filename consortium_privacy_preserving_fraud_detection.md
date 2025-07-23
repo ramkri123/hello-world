@@ -237,7 +237,7 @@ Banks: Transaction Data → TEE Inference → Risk Scores → Banks
 | | Operational Complexity | **Lowest** (simple setup) | **Medium** (TEE + FL management) | **Medium-High** (TEE + frequent sync) | **Highest** (TEE management) |
 | | Single Point of Failure | **No** (distributed) | **Partial** (TEE dependency) | **Partial** (TEE dependency) | **Yes** (TEE compromise) |
 | **Governance** | Regulatory & Data Sovereignty | **Best** (data isolation + simple compliance) | **Good** (TEE attestation + boundaries) | **Good** (TEE attestation + boundaries) | **Poor** (data movement + complex compliance) |
-| | Model IP Protection | **Best** (fully local) | **Good** (TEE isolation) | **Good** (TEE isolation) | **Poor** (shared in TEE) |
+| | Model IP Protection | **Best** (fully local) | **Good** (TEE isolation) | **Good** (TEE isolation) | **Good** (TEE isolation) |
 | | Fairness Auditing | **Difficult** (isolated models) | **Good** (aggregated insights) | **Good** (aggregated insights) | **Best** (centralized analysis) |
 
 **Legend:**
