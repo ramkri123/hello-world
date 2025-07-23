@@ -118,39 +118,18 @@
 
         <!-- Scenario Selection -->
         <div class="row mb-5">
-            <div class="col-md-6 col-lg-4 mb-3">
+            <div class="col-md-6 col-lg-6 mb-3">
                 <div class="fraud-level fraud-high">
-                    <h5><i class="bi bi-exclamation-triangle-fill"></i> High Sophistication Fraud</h5>
-                    <p><strong>Scenario:</strong> Impersonator mimics CEO style with urgent wire transfer request</p>
-                    <button class="btn demo-button w-100" onclick="runScenario('high_fraud')">Test This Scenario</button>
+                    <h5><i class="bi bi-exclamation-triangle-fill"></i> CEO Account Compromised (BEC)</h5>
+                    <p><strong>Scenario:</strong> Attacker has gained access to the real CEO's email account and sends a convincing, urgent payment request to the finance team. The message appears fully authentic and references real business details, making it extremely difficult to detect.</p>
+                    <button class="btn demo-button w-100" onclick="runScenario('bec_fraud')">Test This Scenario</button>
                 </div>
             </div>
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="fraud-level fraud-medium">
-                    <h5><i class="bi bi-exclamation-triangle"></i> Medium Sophistication Fraud</h5>
-                    <p><strong>Scenario:</strong> Basic CEO impersonation with some authority claims</p>
-                    <button class="btn demo-button w-100" onclick="runScenario('medium_fraud')">Test This Scenario</button>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="fraud-level fraud-low">
-                    <h5><i class="bi bi-info-circle"></i> Low Sophistication Fraud</h5>
-                    <p><strong>Scenario:</strong> Obvious impersonation attempt with poor execution</p>
-                    <button class="btn demo-button w-100" onclick="runScenario('low_fraud')">Test This Scenario</button>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4 mb-3">
+            <div class="col-md-6 col-lg-6 mb-3">
                 <div class="fraud-level fraud-legitimate">
                     <h5><i class="bi bi-check-circle"></i> Legitimate CEO Communication</h5>
-                    <p><strong>Scenario:</strong> Real CEO making standard business request</p>
+                    <p><strong>Scenario:</strong> Real CEO sends a standard business request, referencing official approvals and encouraging coordination with the finance team.</p>
                     <button class="btn demo-button w-100" onclick="runScenario('legitimate_urgent')">Test This Scenario</button>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="fraud-level fraud-legitimate">
-                    <h5><i class="bi bi-check-circle"></i> Legitimate CEO (Routine)</h5>
-                    <p><strong>Scenario:</strong> Real CEO making routine business communication</p>
-                    <button class="btn demo-button w-100" onclick="runScenario('legitimate_routine')">Test This Scenario</button>
                 </div>
             </div>
         </div>
@@ -247,42 +226,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
     <script>
         const scenarios = {
-            'high_fraud': {
+            'bec_fraud': {
                 'participant_id': 'bank_A',
                 'transaction_data': {
-                    'amount': 2500000,
-                    'recipient': 'Urgent Investment LLC',
-                    'communication': 'This is CEO. URGENT: We found an exclusive investment opportunity that expires in 2 hours. Wire $2.5M to Urgent Investment LLC immediately. This is highly confidential - do NOT discuss with finance team or board as it could compromise the deal. I am in back-to-back meetings and cannot be reached. This must be processed within the hour or we lose millions. Trust my judgment on this.',
-                    'sender_claimed_identity': 'CEO John Smith',
-                    'urgency_indicators': ['expires in 2 hours', 'within the hour', 'immediately'],
-                    'secrecy_demands': ['highly confidential', 'do NOT discuss', 'cannot be reached'],
-                    'authority_claims': ['This is CEO', 'Trust my judgment'],
-                    'bypass_procedures': ['do NOT discuss with finance team']
-                }
-            },
-            'medium_fraud': {
-                'participant_id': 'bank_B',
-                'transaction_data': {
-                    'amount': 850000,
-                    'recipient': 'Strategic Partners Ltd',
-                    'communication': 'Hi team, I need you to process a payment to Strategic Partners Ltd for $850k. This is for a confidential acquisition we are working on. Please handle this quickly as I am traveling.',
-                    'sender_claimed_identity': 'CEO John Smith',
-                    'urgency_indicators': ['quickly'],
-                    'secrecy_demands': ['confidential acquisition'],
-                    'authority_claims': ['I need you'],
-                    'bypass_procedures': []
-                }
-            },
-            'low_fraud': {
-                'participant_id': 'bank_C',
-                'transaction_data': {
-                    'amount': 50000,
-                    'recipient': 'Quick Cash Corp',
-                    'communication': 'Hey, send $50k to Quick Cash Corp right now. I am the CEO so do it.',
-                    'sender_claimed_identity': 'CEO',
-                    'urgency_indicators': ['right now'],
-                    'secrecy_demands': [],
-                    'authority_claims': ['I am the CEO'],
+                    'amount': 1750000,
+                    'recipient': 'Global Ventures Ltd',
+                    'communication': 'Hi team, as discussed in the board meeting, please urgently wire $1,750,000 to Global Ventures Ltd for the confidential acquisition project. I am traveling and will be unavailable for calls, but this needs to be completed today to secure the deal. All documentation is in order. Let me know once done.',
+                    'sender_claimed_identity': 'John Smith, CEO',
+                    'urgency_indicators': ['urgently', 'needs to be completed today'],
+                    'secrecy_demands': ['confidential acquisition project'],
+                    'authority_claims': ['as discussed in the board meeting'],
                     'bypass_procedures': []
                 }
             },
@@ -291,20 +244,7 @@
                 'transaction_data': {
                     'amount': 500000,
                     'recipient': 'Verified Supplier Inc',
-                    'communication': 'Please process payment of $500,000 to Verified Supplier Inc per our Q4 procurement schedule. This payment was approved in last weeks board meeting (reference: Board Resolution 2024-Q4-15). Finance team has the supporting documentation. Please coordinate with CFO office for processing.',
-                    'sender_claimed_identity': 'John Smith, CEO',
-                    'urgency_indicators': [],
-                    'secrecy_demands': [],
-                    'authority_claims': [],
-                    'bypass_procedures': []
-                }
-            },
-            'legitimate_routine': {
-                'participant_id': 'bank_B',
-                'transaction_data': {
-                    'amount': 75000,
-                    'recipient': 'Monthly Vendor Services',
-                    'communication': 'Please process the monthly payment of $75,000 to Monthly Vendor Services as per our standard vendor agreement. This is part of our regular monthly obligations.',
+                    'communication': 'Please process payment of $500,000 to Verified Supplier Inc per our Q4 procurement schedule. This payment was approved in last week’s board meeting (reference: Board Resolution 2024-Q4-15). Finance team has the supporting documentation. Please coordinate with CFO office for processing.',
                     'sender_claimed_identity': 'John Smith, CEO',
                     'urgency_indicators': [],
                     'secrecy_demands': [],

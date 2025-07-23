@@ -14,6 +14,11 @@ import time
 import threading
 import json
 
+# ramki
+# sender
+anonymized_accounts = ["ANON_7985ad3d2d082aed"]
+anonymized_accounts_age = ["old"]
+
 class BankAProcessor:
     def __init__(self):
         self.bank_id = 'bank_A'
@@ -22,6 +27,7 @@ class BankAProcessor:
         self.model = None
         self.running = True
         
+        '''
         # Load the model
         try:
             # Use path relative to project root
@@ -32,10 +38,30 @@ class BankAProcessor:
         except Exception as e:
             print(f"⚠️ Could not load model: {e}, using mock scoring")
             self.model = None
+        '''
     
     def analyze_transaction(self, transaction_data):
         """Analyze transaction using Bank A's wire transfer expertise"""
         try:
+            # ramki
+            print("\n*** transaction_data start ***\n")
+            print(transaction_data)
+            sender_account_match = False
+            receiver_account_match = False
+            sender_anonymous = transaction_data['transaction_data']['sender_anonymous']
+            receiver_anonymous = transaction_data['transaction_data']['receiver_anonymous']
+            sender_account_age = "old"
+            receiver_account_age = "old"
+            i = 0
+            for a in anonymized_accounts:
+                if a == sender_anonymous:
+                    sender_account_match = True
+                    sender_account_age = anonymized_accounts_age[i]
+                if a == receiver_anonymous:
+                    receiver_account_match = True
+                    receiver_account_age = anonymized_accounts_age[i]
+                i = i + 1
+
             # Extract transaction amount from the raw data structure
             # transaction_data contains the entire original request
             if 'transaction_data' in transaction_data:
@@ -55,12 +81,21 @@ class BankAProcessor:
             
             # Add some wire transfer specific risk factors
             if amount > 500000:
-                base_risk += 0.1
-                print(f"   📈 Large amount risk: +0.1")
+                base_risk += 0.05
+                print(f"   📈 Large amount risk: +0.05")
             if tx_type.lower() in ['wire', 'wire_transfer', 'international']:
                 base_risk += 0.05
                 print(f"   📈 Wire transfer risk: +0.05")
                 
+            if (sender_account_age == 'new'):
+                print(f"   New sender account risk: +0.3")
+                base_risk += 0.3
+            if (receiver_account_age == 'new'):
+                print(f"   New receiver account risk: +0.3")
+                base_risk += 0.3
+
+            print("\n*** transaction_data end ***\n")
+
             print(f"   💯 Bank A final risk score: {base_risk:.3f}")
                 
             return {

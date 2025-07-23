@@ -16,6 +16,9 @@ app.config['DEBUG'] = True
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.WARN)
+
 # Configuration
 CONSORTIUM_HUB_URL = "http://localhost:8080"
 
@@ -46,13 +49,17 @@ def analyze_transaction():
             "email_content": transaction_data.get('communication', ''),
             "transaction_data": {
                 "amount": transaction_data.get('amount', 0),
-                "sender_account": "ACCA12345",  # Default sender account
-                "receiver_account": "ACCB67890",  # Default receiver account  
+                "sender_account": "ACCA12345",  # Default sender account - CEO company account in Bank A
+                "receiver_account": "ACCB12345",  # Default receiver account - Verified Supplier Inc account in Bank B
                 "transaction_type": "wire_transfer"
             },
             "sender_data": {"bank": "bank_A"},
             "receiver_data": {"bank": "bank_B"}
         }
+
+        # ramki - CEO fraud
+        if (transaction_data['recipient'] == 'Global Ventures Ltd'):
+            consortium_data["transaction_data"]["receiver_account"] = "ACCB67890"    
         
         logger.info(f"Sending to consortium: {json.dumps(consortium_data, indent=2)}")
         

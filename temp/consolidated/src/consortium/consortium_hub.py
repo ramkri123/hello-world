@@ -17,6 +17,9 @@ import logging
 import sys
 import os
 
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.WARN)
+
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -187,6 +190,21 @@ class ConsortiumHub:
                     anonymized_accounts = self._create_anonymized_account_identifiers(
                         sender_account, receiver_account
                     )
+
+                    # ramki
+                    print("\ndata start\n")
+                    print(data)
+                    print(anonymized_accounts)
+                    print("\ndata end\n")
+                    data['transaction_data']['email_content'] = ''
+
+                    data['transaction_data']['sender_data'] = ''
+                    data['transaction_data']['sender_account'] = ''
+                    data['transaction_data']['sender_anonymous'] = anonymized_accounts['sender_anonymous']
+
+                    data['transaction_data']['receiver_data'] = ''
+                    data['transaction_data']['receiver_account'] = ''
+                    data['transaction_data']['receiver_anonymous'] = anonymized_accounts['receiver_anonymous']
                     
                     # Extract anonymous features using NLP
                     features = nlp.convert_to_anonymous_features(
@@ -463,6 +481,7 @@ class ConsortiumHub:
         # Use consortium-standard one-way hash function that all banks can also use
         return AccountAnonymizer.anonymize_transaction_accounts(sender_account, receiver_account)
     
+    # ramki
     def _detect_ceo_impersonation(self, email_content: str, amount: float) -> float:
         """
         Advanced CEO impersonation detection using multiple behavioral indicators
@@ -479,7 +498,7 @@ class ConsortiumHub:
             'founder here', 'owner here', 'director here'
         ]
         if any(phrase in email_content for phrase in authority_phrases):
-            confidence_score += 0.25  # Strong indicator
+            confidence_score += 0.05  # Strong indicator
             
         # 2. Authority + Secrecy Combination (Classic CEO fraud)
         authority_words = ['ceo', 'president', 'executive', 'director', 'founder']
@@ -489,7 +508,7 @@ class ConsortiumHub:
         has_secrecy = any(word in email_content for word in secrecy_words)
         
         if has_authority and has_secrecy:
-            confidence_score += 0.20
+            confidence_score += 0.05
             
         # 3. Bypass Normal Procedures (Red flag for impersonation)
         bypass_phrases = [
@@ -497,14 +516,14 @@ class ConsortiumHub:
             'directly to', 'not through normal', 'outside normal', 'urgent exception'
         ]
         if any(phrase in email_content for phrase in bypass_phrases):
-            confidence_score += 0.15
+            confidence_score += 0.05
             
         # 4. Time Pressure + Authority (Manipulation tactic)
         urgency_phrases = ['urgent', 'immediate', 'asap', 'right now', 'quickly', 'deadline']
         urgency_count = sum(1 for phrase in urgency_phrases if phrase in email_content)
         
         if has_authority and urgency_count >= 2:
-            confidence_score += 0.18
+            confidence_score += 0.05
             
         # 5. Acquisition/Deal Language (Common CEO fraud scenario)
         deal_phrases = [
@@ -512,7 +531,7 @@ class ConsortiumHub:
             'close the deal', 'business opportunity', 'vendor payment', 'contract'
         ]
         if any(phrase in email_content for phrase in deal_phrases) and amount > 100000:
-            confidence_score += 0.12
+            confidence_score += 0.05
             
         # 6. Communication Anomalies (Behavioral red flags)
         anomaly_phrases = [
@@ -520,7 +539,7 @@ class ConsortiumHub:
             'off the books', 'cash transaction', 'wire transfer only'
         ]
         if any(phrase in email_content for phrase in anomaly_phrases):
-            confidence_score += 0.10
+            confidence_score += 0.05
             
         # 7. Grammar/Style Inconsistencies (Often indicates impersonation)
         # Look for overly formal language mixed with urgency (suspicious pattern)
@@ -531,7 +550,7 @@ class ConsortiumHub:
         has_informal_urgent = any(word in email_content for word in informal_urgent)
         
         if has_formal and has_informal_urgent:
-            confidence_score += 0.08
+            confidence_score += 0.05
             
         # 8. External Pressure References (Social engineering)
         pressure_phrases = [
@@ -542,7 +561,7 @@ class ConsortiumHub:
             confidence_score += 0.05
             
         # Cap the maximum confidence score
-        return min(confidence_score, 0.35)
+        return min(confidence_score, 0.15)
     
     def _calculate_scenario_weights(self, individual_scores: Dict[str, float], sender_account: str, receiver_account: str) -> Dict[str, float]:
         """Calculate confidence weights - banks determine their own scenarios using shared hash function"""
@@ -593,33 +612,37 @@ class ConsortiumHub:
                 boost_factor += ceo_impersonation_score
                 fraud_indicators.append(f"CEO impersonation (confidence: {ceo_impersonation_score:.2f})")
             
+            # ramki
             # High-value transaction boost
             if amount > 100000:
-                boost_factor += 0.15
+                boost_factor += 0.05
                 fraud_indicators.append(f"Large amount: ${amount:,.2f}")
             
             # Crypto/investment scam patterns
             if any(phrase in email_content for phrase in ['crypto', 'investment', 'return', 'guarantee', 'opportunity']):
-                boost_factor += 0.25
+                boost_factor += 0.05
                 fraud_indicators.append("Investment scam pattern")
             
             # Romance/dating scam patterns  
             if any(phrase in email_content for phrase in ['love', 'relationship', 'meet', 'dating', 'emergency']):
-                boost_factor += 0.20
+                boost_factor += 0.05
                 fraud_indicators.append("Romance scam pattern")
             
             # Business email compromise patterns
             if any(phrase in email_content for phrase in ['wire transfer', 'vendor', 'payment', 'invoice', 'urgent']):
                 if amount > 50000:
-                    boost_factor += 0.18
+                    boost_factor += 0.05
                     fraud_indicators.append("BEC pattern with large amount")
             
             # Multiple urgency/pressure indicators
             urgency_count = sum(1 for phrase in ['urgent', 'immediate', 'asap', 'quickly', 'deadline'] if phrase in email_content)
             if urgency_count >= 2:
-                boost_factor += 0.15
+                boost_factor += 0.05
                 fraud_indicators.append("Multiple urgency indicators")
             
+            if boost_factor >= .2:
+                boost_factor = .2
+
             # Apply boost but cap at reasonable levels
             boosted_score = min(consensus_score + boost_factor, 0.95)
             
@@ -654,6 +677,11 @@ class ConsortiumHub:
             # Create pending inference request for bank polling
             active_banks = [b.node_id for b in self.banks.values() if b.status in ["active", "online"]]
             
+            # ramki
+            session.raw_data['email_content'] = ''
+            session.raw_data['sender_data'] = ''
+            session.raw_data['receiver_data'] = ''
+
             self.pending_inferences[session_id] = {
                 'session_id': session_id,
                 'features': session.features,
@@ -754,6 +782,10 @@ class ConsortiumHub:
                 total_weighted_score += score * weight
                 total_weight += weight
             
+            # ramki
+            print("*** total_weight ***");
+            print(total_weight)
+
             if total_weight > 0:
                 consensus_score = total_weighted_score / total_weight
             else:

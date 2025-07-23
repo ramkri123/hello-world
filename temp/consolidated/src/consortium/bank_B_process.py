@@ -14,6 +14,11 @@ import time
 import threading
 import json
 
+# ramki
+# receiver
+anonymized_accounts = ['ANON_beea8ae9fe948ea5', 'ANON_a5058418f8ce514f']
+anonymized_accounts_age = ["new", "old"]
+
 class BankBProcessor:
     def __init__(self):
         self.bank_id = 'bank_B'
@@ -22,6 +27,7 @@ class BankBProcessor:
         self.model = None
         self.running = True
         
+        '''
         # Load the model
         try:
             # Use path relative to project root
@@ -32,10 +38,30 @@ class BankBProcessor:
         except Exception as e:
             print(f"⚠️ Could not load model: {e}, using mock scoring")
             self.model = None
+        '''
     
     def analyze_transaction(self, transaction_data):
         """Analyze transaction using Bank B's corporate banking expertise"""
         try:
+            # ramki
+            print("\n*** transaction_data start ***\n")
+            print(transaction_data)
+            sender_account_match = False
+            receiver_account_match = False
+            sender_anonymous = transaction_data['transaction_data']['sender_anonymous']
+            receiver_anonymous = transaction_data['transaction_data']['receiver_anonymous']
+            sender_account_age = "old"
+            receiver_account_age = "new"
+            i = 0
+            for a in anonymized_accounts:
+                if a == sender_anonymous:
+                    sender_account_match = True
+                    sender_account_age = anonymized_accounts_age[i]
+                if a == receiver_anonymous:
+                    receiver_account_match = True
+                    receiver_account_age = anonymized_accounts_age[i]
+                i = i + 1
+
             # Extract transaction amount from the raw data structure
             # transaction_data contains the entire original request
             if 'transaction_data' in transaction_data:
@@ -55,7 +81,7 @@ class BankBProcessor:
             
             # Add corporate-specific risk factors
             if amount > 1000000:
-                base_risk += 0.15  # Large corporate transactions
+                base_risk += 0.05  # Large corporate transactions
                 print(f"   📈 Large corporate amount risk: +0.15")
             if transaction_data.get('business_type', '').lower() in ['corporation', 'llc', 'inc']:
                 base_risk += 0.03
@@ -63,6 +89,15 @@ class BankBProcessor:
             if tx_type.lower() in ['ach', 'corporate']:
                 base_risk += 0.02
                 print(f"   📈 Corporate transaction type risk: +0.02")
+
+            if (sender_account_age == 'new'):
+                print(f"   New sender account risk: +0.3")
+                base_risk += 0.3
+            if (receiver_account_age == 'new'):
+                print(f"   New receiver account risk: +0.3")
+                base_risk += 0.3
+
+            print("\n*** transaction_data end ***\n")
                 
             print(f"   💯 Bank B final risk score: {base_risk:.3f}")
                 
