@@ -196,7 +196,25 @@ Banks: Transaction Data → TEE Inference → Risk Scores → Banks
 - **Competitive environments** where banks want collective learning with maximum privacy protection
 - **Regulatory-heavy jurisdictions** demanding hardware-attested security guarantees
 
-### 4.3 Architecture Comparison Matrix
+### 4.3 Architecture Comparison Matrix 
+
+**AI Safety, Privacy, Security and Governance**
+
+| **Primary Category** | **Sub-Category** | Score Sharing Consortium | FL in TEE - Weights | FL in TEE - Gradients | Clean Room TEE |
+|---------------------|------------------|----------------------|-------------------|---------------------|----------------|
+| **AI Safety** | Bias Mitigation | **Lowest** (institutional bias) | **High** (diverse data sources) | **High** (diverse data sources) | **Highest** (unified training) |
+| | Human Value Alignment | **Medium** (bank-specific values) | **Good** (consortium consensus building) | **Medium-Good** (adaptive but potentially unstable alignment) | **Best** (unified optimization) |
+| | Unintended Consequences | **Low Risk** (isolated impact) | **Medium Risk** (coordinated errors) | **Medium-High Risk** (rapid error propagation) | **High Risk** (system-wide impact) |
+| | Overall AI Safety | **Medium** (limited bias correction vs low systemic risk) | **High** (good bias mitigation with moderate systemic risk) | **Medium-High** (good bias mitigation but higher propagation risk) | **Medium** (best alignment but high systemic risk) |
+| **AI Privacy** | Privacy Protection | **Highest** (No training data sharing, no model sharing) | **Medium-High** (no training data sharing, intermediate/final model weights sharing) | **Medium** (no training data sharing, intermediate/final model weights/gradients sharing) | **Low** (training data sharing, intermediate/final model weights/gradients sharing) |
+| **AI Security** | Adversarial Resistance | **High** (TEE protection + isolated models) | **Good** (TEE protection + consortium model access risk) | **Medium** (TEE protection + gradient exposure vulnerabilities + consortium model access risk) | **Medium** (TEE protection + consortium complete model access risk) |
+| | Attack Surface | **Smallest** (TEE protection + scores only) | **Medium** (TEE protection + consortium model access) | **Medium** (TEE protection + consortium model access) | **Large** (TEE protection + consortium complete unified model access) |
+| | Overall AI Security | **High** (TEE protection + minimal data/model exposure) | **Medium-High** (TEE protection + consortium model access risk) | **Medium** (TEE protection + gradient vulnerabilities + consortium model access risk) | **Medium** (TEE protection but consortium has complete model with all banks' patterns) |
+| **Governance** | Regulatory & Data Sovereignty | **Best** (data isolation + simple compliance) | **Good** (TEE attestation + boundaries) | **Good** (TEE attestation + boundaries) | **Poor** (data movement + complex compliance) |
+| | Model IP Protection | **Best** (fully local) | **Good** (TEE isolation) | **Good** (TEE isolation) | **Poor** (shared in TEE) |
+| | Fairness Auditing | **Difficult** (isolated models) | **Good** (aggregated insights) | **Good** (aggregated insights) | **Best** (centralized analysis) |
+
+**All aspects considered**
 
 | **Primary Category** | **Sub-Category** | Score Sharing Consortium | FL in TEE - Weights | FL in TEE - Gradients | Clean Room TEE |
 |---------------------|------------------|----------------------|-------------------|---------------------|----------------|
