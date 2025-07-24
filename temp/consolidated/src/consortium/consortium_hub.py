@@ -28,7 +28,11 @@ from privacy_preserving_nlp import PrivacyPreservingNLP
 from account_anonymizer import AccountAnonymizer
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s',
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -797,6 +801,7 @@ class ConsortiumHub:
                 specialty = participant.specialty if participant else "Unknown"
                 weight = scenario_weights.get(pid, 0.5)
                 weighted_score = score * weight
+                # ramki
                 logger.info(f"   🏦 {pid} ({specialty}): {score:.3f} (weight: {weight:.2f}, weighted: {weighted_score:.3f})")
             
             variance = sum((s - consensus_score) ** 2 for s in individual_scores.values()) / len(individual_scores)
@@ -848,6 +853,7 @@ class ConsortiumHub:
                 "consensus_score": consensus_score,
                 "variance": variance,
                 "recommendation": recommendation,
+                # ramki
                 "individual_scores": {pid: r['fraud_score'] for pid, r in responses.items()},
                 "participant_consensus": {
                     "total": len(responses),

@@ -12,8 +12,12 @@ import logging
 app = Flask(__name__)
 app.config['DEBUG'] = True
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s',
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
 log = logging.getLogger('werkzeug')
@@ -101,6 +105,7 @@ def analyze_transaction():
                         "specialist_insights": analysis_result.get('specialist_insights', []),
                         "ceo_pattern_boost": analysis_result.get('final_score', 0.0) - analysis_result.get('consensus_score', 0.0)
                     }
+                    logger.info(f"Analysis complete ui: {json.dumps(ui_result, indent=2)}")
                     
                     return jsonify(ui_result)
                 else:

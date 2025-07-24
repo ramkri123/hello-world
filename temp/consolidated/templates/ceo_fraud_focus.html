@@ -161,13 +161,12 @@
                                 <p><strong>Method:</strong> Machine Learning Risk Scoring</p>
                                 <p><strong>Focus:</strong> Transaction patterns, amounts, historical behavior</p>
                                 
-                                <div id="bankScore" class="score-display bg-light text-dark">
+                                <div id="bank1Score" class="score-display bg-light text-dark">
                                     Waiting for analysis...
                                 </div>
-                                
-                                <div id="bankAnalysis">
-                                    <h5>Bank Assessment:</h5>
-                                    <ul id="bankFactors"></ul>
+
+                                <div id="bank2Score" class="score-display bg-light text-dark">
+                                    Waiting for analysis...
                                 </div>
                             </div>
                         </div>
@@ -286,19 +285,16 @@
             document.getElementById('resultsSection').style.display = 'block';
             
             // Display bank analysis
-            const bankScore = result.bank_risk_score || 0.0;
-            document.getElementById('bankScore').innerHTML = `Risk Score: ${(bankScore * 100).toFixed(1)}%`;
-            document.getElementById('bankScore').className = `score-display ${getScoreClass(bankScore)}`;
-            
-            // Bank factors
-            const bankFactors = document.getElementById('bankFactors');
-            bankFactors.innerHTML = '';
-            ['High transaction amount', 'Transaction pattern analysis', 'Historical behavior comparison', 'Recipient verification'].forEach(factor => {
-                const li = document.createElement('li');
-                li.textContent = factor;
-                bankFactors.appendChild(li);
-            });
-            
+
+            // ramki
+            const bank1Score = result.individual_scores.bank_A || 0.0;
+            document.getElementById('bank1Score').innerHTML = `Bank1 Risk Score: ${(bank1Score * 100).toFixed(1)}%`;
+            document.getElementById('bank1Score').className = `score-display ${getScoreClass(bank1Score)}`;
+
+            const bank2Score = result.individual_scores.bank_B || 0.0;
+            document.getElementById('bank2Score').innerHTML = `Bank2 Risk Score: ${(bank2Score * 100).toFixed(1)}%`;
+            document.getElementById('bank2Score').className = `score-display ${getScoreClass(bank2Score)}`;
+
             // Display consortium analysis
             const consortiumScore = result.consortium_risk_score || 0.0;
             const patternBoost = result.ceo_pattern_boost || (consortiumScore - bankScore);
